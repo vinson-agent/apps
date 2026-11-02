@@ -1,36 +1,60 @@
-﻿<!doctype html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vinson's Apps</title>
+<title>Vinson's Arcade</title>
 <style>
-  :root { --bg:#f7f7f8; --card:#fff; --text:#1d1d1f; --muted:#6e6e73; --accent:#2f6fed; --border:#e3e3e8; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#111214; --card:#1b1c1f; --text:#f2f2f4; --muted:#9a9aa1; --accent:#6b9bff; --border:#2c2d31; }
-  }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); }
-  main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
-  h1 { font-size: 1.6rem; margin: 0 0 4px; }
-  p.sub { color: var(--muted); margin: 0 0 24px; }
-  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
-  a.app { display:block; padding: 14px 16px; background: var(--card); border:1px solid var(--border); border-radius: 12px; color: var(--text); text-decoration: none; }
-  a.app:hover { border-color: var(--accent); }
-  a.app strong { display:block; }
-  a.app span { color: var(--muted); font-size: .92rem; }
-  .empty { color: var(--muted); font-style: italic; }
+  :root { --bg:#14102b; --bg2:#241a4d; --card:#2b2160; --text:#f4f1ff; --muted:#a99fd6; --accent:#ffd34d; --border:#4a3d99; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; min-height:100vh; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; color:var(--text);
+    background: radial-gradient(circle at 50% -10%, var(--bg2), var(--bg) 70%) fixed; }
+  main { max-width: 720px; margin: 0 auto; padding: 36px 16px 48px; }
+  header { text-align:center; margin-bottom: 28px; }
+  h1 { font-size: clamp(1.7rem, 7vw, 2.6rem); margin: 0 0 6px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); text-shadow: 3px 3px 0 #0007; }
+  p.sub { color: var(--muted); margin: 0; font-size: .95rem; }
+  h2 { font-size: .85rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 28px 0 10px; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  a.app, li.soon { display:flex; flex-direction:column; gap:4px; height:100%; padding: 16px; background: var(--card);
+    border: 3px solid var(--border); border-radius: 6px; color: var(--text); text-decoration: none;
+    box-shadow: 4px 4px 0 #0006; transition: transform .08s, box-shadow .08s, border-color .08s; }
+  a.app:hover, a.app:focus-visible { border-color: var(--accent); transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #0006; outline: none; }
+  a.app:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 #0006; }
+  .ico { font-size: 2.2rem; line-height: 1.1; margin-bottom: 4px; }
+  a.app strong, li.soon strong { font-size: 1.05rem; }
+  a.app span.d, li.soon span.d { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+  li.soon { opacity: .55; border-style: dashed; box-shadow: none; }
+  .tag { align-self:flex-start; margin-top:auto; padding-top:8px; font-size:.7rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  footer { text-align:center; color:var(--muted); font-size:.75rem; margin-top:36px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Vinson's Apps</h1>
-  <p class="sub">Small everyday tools, built by Gordon.</p>
+  <header>
+    <h1>🕹️ Vinson's Arcade</h1>
+    <p class="sub">Pilih game, langsung main. Tanpa install, tanpa akun.</p>
+  </header>
+
+  <h2>Main sekarang</h2>
   <ul id="apps">
     <!-- APPS:START -->
-      <li><a class="app" href="pixel-minesweeper/"><strong>Pixel Minesweeper</strong><span>Minesweeper pixel art, 3 level, rekor waktu, mode bendera untuk HP</span></a></li>
+      <li><a class="app" href="solitaire/"><span class="ico">🃏</span><strong>Solitaire</strong><span class="d">Klondike klasik. Ambil 1 atau 3, undo, rekor waktu.</span><span class="tag">▶ Main</span></a></li>
+      <li><a class="app" href="pixel-minesweeper/"><span class="ico">💣</span><strong>Pixel Minesweeper</strong><span class="d">Minesweeper pixel art, 3 level, mode bendera untuk HP.</span><span class="tag">▶ Main</span></a></li>
     <!-- APPS:END -->
   </ul>
+
+  <h2>Segera hadir</h2>
+  <ul id="soon">
+    <!-- SOON:START -->
+      <li class="soon"><span class="ico">🐍</span><strong>Snake</strong><span class="d">Ular klasik, makin panjang makin cepat.</span><span class="tag">Segera</span></li>
+      <li class="soon"><span class="ico">🔢</span><strong>2048</strong><span class="d">Gabungkan angka sampai 2048.</span><span class="tag">Segera</span></li>
+      <li class="soon"><span class="ico">🧠</span><strong>Memory Match</strong><span class="d">Cocokkan pasangan kartu.</span><span class="tag">Segera</span></li>
+      <li class="soon"><span class="ico">🧱</span><strong>Block Stack</strong><span class="d">Susun balok, hapus baris.</span><span class="tag">Segera</span></li>
+    <!-- SOON:END -->
+  </ul>
+
+  <footer>Dibuat oleh Gordon 🦉 · data skor tersimpan di browser kamu</footer>
 </main>
 </body>
 </html>

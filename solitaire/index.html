@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Solitaire</title>
+<style>
+:root{--w:70px;--h:calc(var(--w)*1.4);color-scheme:light dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100vh;background:#1b6b3a radial-gradient(circle at 50% 0,#27904f,#124d29);font-family:system-ui,Segoe UI,Roboto,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;overflow-x:hidden}
+header{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;padding:8px 6px 4px}
+header button{font:inherit;font-size:14px;padding:7px 12px;border:0;border-radius:8px;background:#0006;color:#fff;cursor:pointer}
+header button:active{background:#0009}
+header button:disabled{opacity:.4}
+#stats{width:100%;text-align:center;font-size:13px;opacity:.9}
+#board{padding:6px 0 40px;touch-action:none}
+.row{display:grid;grid-template-columns:repeat(7,var(--w));gap:4px;justify-content:center;margin-bottom:12px}
+.pile{position:relative;width:var(--w);height:var(--h);border-radius:calc(var(--w)*.1);border:2px dashed #fff3;background:#0002}
+.pile.t{height:auto;min-height:var(--h)}
+#ps{cursor:pointer}
+#ps:empty::after{content:"↻";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:calc(var(--w)*.5);opacity:.5}
+.card{position:absolute;width:calc(var(--w) + 0px);height:var(--h);left:-2px;top:-2px;border-radius:calc(var(--w)*.1);background:#fff;color:#111;box-shadow:0 1px 3px #0007;font-size:calc(var(--w)*.28);touch-action:none;cursor:grab}
+.card.red{color:#c4161c}
+.card b{position:absolute;left:5%;top:2%;font-size:1em;line-height:1.1}
+.card i{position:absolute;right:8%;bottom:4%;font-style:normal;font-size:1.6em;line-height:1}
+.card.back{background:repeating-linear-gradient(45deg,#2a56c6 0 5px,#3b6ae0 5px 10px);border:3px solid #fff;cursor:default}
+.card.drag{z-index:1000;pointer-events:none;box-shadow:0 6px 14px #0009}
+#win{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:2000}
+#win div{background:#fff;color:#111;padding:24px 32px;border-radius:14px;text-align:center}
+#win h2{margin:0 0 8px}
+#win button{font:inherit;margin-top:12px;padding:9px 18px;border:0;border-radius:8px;background:#1b6b3a;color:#fff}
+</style>
+</head>
+<body>
+<header>
+  <button id="bNew">Baru</button>
+  <button id="bUndo">↶ Undo</button>
+  <button id="bDraw">Ambil 1</button>
+  <button id="bAuto" style="display:none">Selesaikan</button>
+  <div id="stats"></div>
+</header>
+<div id="board">
+  <div class="row" id="r1"></div>
+  <div class="row" id="r2"></div>
+</div>
+<div id="win"><div><h2>🎉 Menang!</h2><p id="winTxt"></p><button id="bAgain">Main lagi</button></div></div>
+<script>
+const SU=['♠','♥','♦','♣'],RK=['','A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const $=s=>document.querySelector(s);
+const isRed=c=>c.s==1||c.s==2;
+let G,hist=[],moves=0,time=0,started=false,won=false,auto=null;
+let draw=+localStorage.solDraw||1;
+let best=JSON.parse(localStorage.solBest||'{}');
+let W=70;
+const piles={};
+
+// ---------- build board ----------
+function build(){
+  const r1=$('#r1'),r2=$('#r2');
+  const mk=(id,cls,parent)=>{const d=document.createElement('div');d.className='pile '+cls;d.id='p'+id;parent.appendChild(d);piles[id]=d;return d};
+  mk('s','',r1);mk('w','',r1);
+  const sp=document.createElement('div');r1.appendChild(sp);
+  for(let i=0;i<4;i++)mk('f'+i,'',r1);
+  for(let i=0;i<7;i++)mk('t'+i,'t',r2);
+  piles.s.addEventListener('click',clickStock);
+}
+function size(){
+  W=Math.floor(Math.min(92,(innerWidth-8)/7-4));
+  document.documentElement.style.setProperty('--w',W+'px');
+  if(G)render();
+}
+
+// ---------- game state ----------
+function pile(id){
+  const k=id[0],n=id[1];
+  return k=='t'?G.t[n]:k=='f'?G.f[n]:k=='w'?G.waste:G.stock;
+}
+function newGame(){
+  clearInterval(auto);
+  const d=[];
+  for(let s=0;s<4;s++)for(let r=1;r<=13;r++)d.push({s,r,u:false});
+  for(let i=d.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[d[i],d[j]]=[d[j],d[i]]}
+  G={stock:[],waste:[],f:[[],[],[],[]],t:[[],[],[],[],[],[],[]]};
+  for(let i=0;i<7;i++)for(let j=0;j<=i;j++){const c=d.pop();c.u=j==i;G.t[i].push(c)}
+  G.stock=d;
+  hist=[];moves=0;time=0;started=false;won=false;
+  $('#win').style.display='none';
+  render();
+}
+function snap(){hist.push(JSON.stringify({G,moves}));if(hist.length>300)hist.shift()}
+function undo(){
+  if(!hist.length||won)return;
+  const s=JSON.parse(hist.pop());G=s.G;moves=s.moves+1;render();
+}
+function canPlace(cards,dest){
+  const c=cards[0],d=pile(dest),top=d[d.length-1];
+  if(dest[0]=='f')return cards.length==1&&(top?top.s==c.s&&c.r==top.r+1:c.r==1);
+  if(dest[0]=='t')return top?(top.u&&isRed(top)!=isRed(c)&&top.r==c.r+1):c.r==13;
+  return false;
+}
+function doMove(src,i,dest){
+  snap();
+  const sp=pile(src),cards=sp.splice(i);
+  pile(dest).push(...cards);
+  if(src[0]=='t'&&sp.length)sp[sp.length-1].u=true;
+  moves++;started=true;
+  render();checkWin();
+}
+function clickStock(){
+  if(won)return;
+  snap();started=true;
+  if(G.stock.length){
+    for(let k=0;k<draw&&G.stock.length;k++){const c=G.stock.pop();c.u=true;G.waste.push(c)}
+  }else if(G.waste.length){
+    while(G.waste.length){const c=G.waste.pop();c.u=false;G.stock.push(c)}
+  }else{hist.pop();return}
+  moves++;render();
+}
+function autoMove(id,i){
+  const cards=pile(id).slice(i);
+  if(cards.length==1)for(let f=0;f<4;f++)if(id!='f'+f&&canPlace(cards,'f'+f)){doMove(id,i,'f'+f);return true}
+  if(id[0]=='f')return false;
+  for(let pass=0;pass<2;pass++)for(let t=0;t<7;t++){
+    const d='t'+t;if(d==id)continue;
+    const empty=!G.t[t].length;
+    if((pass==0)==empty)continue;
+    if(empty&&i==0&&id[0]=='t')continue;
+    if(canPlace(cards,d)){doMove(id,i,d);return true}
+  }
+  return false;
+}
+function checkWin(){
+  if(G.f.every(f=>f.length==13)){
+    won=true;clearInterval(auto);
+    const k='d'+draw;
+    if(!best[k]||time<best[k]){best[k]=time;localStorage.solBest=JSON.stringify(best)}
+    $('#winTxt').textContent=`${moves} langkah • ${fmt(time)}`;
+    $('#win').style.display='flex';
+    localStorage.removeItem('solSave');
+  }
+}
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+
+// ---------- render ----------
+function cardEl(c,id,i,x,y){
+  const e=document.createElement('div');
+  e.className='card'+(c.u?(isRed(c)?' red':''):' back');
+  e.dataset.p=id;e.dataset.i=i;
+  e.style.left=(x-2)+'px';e.style.top=(y-2)+'px';
+  if(c.u)e.innerHTML=`<b>${RK[c.r]}${SU[c.s]}</b><i>${SU[c.s]}</i>`;
+  return e;
+}
+function render(){
+  for(const id in piles)piles[id].innerHTML='';
+  if(G.stock.length)piles.s.appendChild(cardEl(G.stock[G.stock.length-1],'s',0,0,0));
+  const w=G.waste,from=Math.max(0,w.length-draw);
+  for(let i=from;i<w.length;i++)piles.w.appendChild(cardEl(w[i],'w',i,(i-from)*W*.28,0));
+  for(let f=0;f<4;f++){const p=G.f[f];if(p.length)piles['f'+f].appendChild(cardEl(p[p.length-1],'f'+f,p.length-1,0,0))}
+  for(let t=0;t<7;t++){
+    const p=G.t[t];let y=0;
+    p.forEach((c,i)=>{piles['t'+t].appendChild(cardEl(c,'t'+t,i,0,y));y+=c.u?W*.4:W*.2});
+    piles['t'+t].style.height=Math.max(W*1.4,y-(p.length?(p[p.length-1].u?W*.4:W*.2):0)+W*1.4)+'px';
+  }
+  const canAuto=!won&&!G.stock.length&&!G.waste.length&&G.t.every(p=>p.every(c=>c.u))&&!G.f.every(f=>f.length==13);
+  $('#bAuto').style.display=canAuto?'':'none';
+  $('#bUndo').disabled=!hist.length;
+  $('#bDraw').textContent='Ambil '+draw;
+  stats();
+  if(!won)localStorage.solSave=JSON.stringify({G,moves,time,started,draw});
+}
+function stats(){
+  const b=best['d'+draw];
+  $('#stats').textContent=`Langkah ${moves} • Waktu ${fmt(time)} • Rekor ${b!=null?fmt(b):'-'}`;
+}
+setInterval(()=>{if(started&&!won){time++;stats();if(time%5==0&&G)localStorage.solSave=JSON.stringify({G,moves,time,started,draw})}},1000);
+
+// ---------- input ----------
+let drag=null;
+$('#board').addEventListener('pointerdown',e=>{
+  if(won||auto)return;
+  const el=e.target.closest('.card');
+  if(!el||el.classList.contains('back'))return;
+  const id=el.dataset.p,i=+el.dataset.i;
+  if(id=='s')return;
+  const p=pile(id);
+  if((id[0]=='w'||id[0]=='f')&&i!=p.length-1)return;
+  const els=[...piles[id].querySelectorAll('.card')].filter(c=>+c.dataset.i>=i);
+  drag={id,i,x:e.clientX,y:e.clientY,on:false,els,rects:[]};
+});
+addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!drag.on&&Math.hypot(dx,dy)>8){
+    drag.on=true;
+    drag.rects=drag.els.map(el=>el.getBoundingClientRect());
+    drag.els.forEach(el=>{el.classList.add('drag');el.style.position='fixed'});
+  }
+  if(drag.on)drag.els.forEach((el,k)=>{el.style.left=(drag.rects[k].left+dx)+'px';el.style.top=(drag.rects[k].top+dy)+'px'});
+});
+addEventListener('pointerup',e=>{
+  if(!drag)return;
+  const d=drag;drag=null;
+  if(!d.on){autoMove(d.id,d.i);return}
+  const dx=e.clientX-d.x,dy=e.clientY-d.y,r=d.rects[0];
+  const a={l:r.left+dx,t:r.top+dy,r:r.right+dx,b:r.bottom+dy};
+  const cards=pile(d.id).slice(d.i);
+  let bestId=null,bestA=0;
+  for(const id in piles){
+    if(id=='s'||id=='w'||id==d.id)continue;
+    const q=piles[id].getBoundingClientRect();
+    const ov=Math.max(0,Math.min(a.r,q.right)-Math.max(a.l,q.left))*Math.max(0,Math.min(a.b,q.bottom)-Math.max(a.t,q.top));
+    if(ov>bestA&&canPlace(cards,id)){bestA=ov;bestId=id}
+  }
+  if(bestId)doMove(d.id,d.i,bestId);else render();
+});
+addEventListener('pointercancel',()=>{if(drag){drag=null;render()}});
+
+$('#bNew').onclick=()=>{if(!started||won||confirm('Mulai permainan baru?'))newGame()};
+$('#bAgain').onclick=newGame;
+$('#bUndo').onclick=undo;
+$('#bDraw').onclick=()=>{
+  if(started&&!won&&!confirm('Ganti mode ambil kartu? Permainan akan diulang.'))return;
+  draw=draw==1?3:1;localStorage.solDraw=draw;newGame();
+};
+$('#bAuto').onclick=()=>{
+  if(auto)return;
+  auto=setInterval(()=>{
+    let src=null;
+    const cands=[['w',G.waste.length-1],...G.t.map((p,t)=>['t'+t,p.length-1])];
+    for(const [id,i] of cands){
+      if(i<0)continue;
+      const c=pile(id)[i];
+      if(G.f.some((_,f)=>canPlace([c],'f'+f))){src=[id,i];break}
+    }
+    if(!src){clearInterval(auto);auto=null;return}
+    const c=pile(src[0])[src[1]];
+    const f=G.f.findIndex((_,f)=>canPlace([c],'f'+f));
+    doMove(src[0],src[1],'f'+f);
+    if(won){clearInterval(auto);auto=null}
+  },110);
+};
+
+// ---------- init ----------
+build();size();addEventListener('resize',size);
+try{
+  const s=JSON.parse(localStorage.solSave||'null');
+  if(s&&s.G&&s.draw==draw){G=s.G;moves=s.moves;time=s.time;started=s.started;render()}else newGame();
+}catch(e){newGame()}
+</script>
+</body>
+</html>
