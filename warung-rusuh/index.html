@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#160a2e">
+<title>Warung Rusuh: party arcade pasar malam</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23160a2e'/%3E%3Ccircle cx='8' cy='9' r='5' fill='%23ffc21a'/%3E%3Crect x='7' y='2' width='3' height='3' fill='%235be36b'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#160a2e;--panel:#2a1252;--panel2:#371a66;--ink:#fff7e8;--muted:#c9b8f0;--y:#ffd23f;--r:#ff3b5c;--g:#22d66b;--b:#3a9bff;--pink:#ff5fc8;--line:#5a2f9a}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+#top{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:6px 10px;padding-top:max(6px,env(safe-area-inset-top));background:#0e0620;border-bottom:3px solid var(--y);min-height:44px}
+#top a{color:var(--y);text-decoration:none;font-weight:800;white-space:nowrap;padding:4px 6px}
+#ttl{flex:1;text-align:center;font-weight:900;letter-spacing:1px;color:var(--pink);text-shadow:2px 2px 0 #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#roomTag{font-weight:900;color:var(--y);font-size:14px;white-space:nowrap}
+#mute{background:var(--panel);border:2px solid var(--line);border-radius:10px;padding:4px 9px;cursor:pointer;font-size:16px}
+#stage{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#ov{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;justify-content:center;align-items:flex-start;padding:14px 12px 24px}
+#ov.hidden{display:none}
+.scr{width:100%;max-width:540px;background:rgba(26,10,56,.9);border:3px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 8px 0 #0a0418;margin:auto 0}
+.logo{display:flex;flex-direction:column;align-items:center;line-height:.95;margin:4px 0 6px;transform:rotate(-3deg)}
+.logo span{font-family:"Arial Black",Impact,sans-serif;font-weight:900;font-size:clamp(34px,11vw,56px);color:var(--y);-webkit-text-stroke:2px #1a0630;text-shadow:4px 4px 0 var(--r),7px 7px 0 #1a0630}
+.logo span+span{color:var(--pink);text-shadow:4px 4px 0 var(--b),7px 7px 0 #1a0630}
+.sub{text-align:center;color:var(--muted);margin:8px 0 14px;font-size:14px}
+h2{margin:4px 0 10px;font-size:22px;color:var(--y);text-shadow:2px 2px 0 #000}
+h3{margin:14px 0 8px;font-size:16px;color:var(--pink)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:var(--panel2);border:3px solid var(--line);border-radius:14px;padding:10px;cursor:pointer;min-height:118px;box-shadow:0 4px 0 #0a0418;transition:transform .08s}
+.card:active{transform:translateY(3px);box-shadow:0 1px 0 #0a0418}
+.card:hover{border-color:var(--y)}
+.card b{font-size:15px;line-height:1.15}
+.card small{color:var(--muted);font-size:12px;line-height:1.25}
+.card em{font-style:normal;color:var(--y);font-size:12px;font-weight:700;margin-top:auto}
+.card.wide{grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;gap:10px}
+.card.wide .tx{display:flex;flex-direction:column;gap:2px}
+.card.mara{background:linear-gradient(135deg,#5a1a6e,#8a1d4f)}
+.card.solo{background:linear-gradient(135deg,#123d5e,#1b5e48)}
+.ic{width:44px;height:44px;image-rendering:pixelated;flex:0 0 auto}
+.btn{display:block;width:100%;padding:13px 14px;margin:8px 0;border-radius:14px;border:3px solid #1a0630;background:var(--y);color:#1a0630;font-weight:900;font-size:17px;cursor:pointer;box-shadow:0 4px 0 #1a0630;text-align:center}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1a0630}
+.btn.red{background:var(--r);color:#fff}.btn.green{background:var(--g)}.btn.blue{background:var(--b);color:#fff}
+.btn.ghost{background:transparent;color:var(--muted);border-color:var(--line);box-shadow:none;font-weight:700;font-size:15px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>.btn{flex:1 1 0;min-width:0;margin:6px 0;font-size:15px;padding:11px 8px}
+label{display:block;font-weight:700;margin:8px 0 4px;color:var(--muted);font-size:14px}
+input[type=text]{width:100%;padding:12px;border-radius:12px;border:3px solid var(--line);background:#12072a;font-size:18px;font-weight:800;outline:none;-webkit-user-select:text;user-select:text}
+input[type=text]:focus{border-color:var(--y)}
+input.code{text-transform:uppercase;letter-spacing:8px;text-align:center;font-size:28px;font-family:"Arial Black",Impact,monospace}
+.codebox{text-align:center;background:#12072a;border:3px dashed var(--y);border-radius:16px;padding:10px}
+.codebox small{color:var(--muted);font-weight:700;letter-spacing:2px}
+.codebox .code{display:block;font-family:"Arial Black",Impact,monospace;font-size:52px;letter-spacing:10px;color:var(--y);text-shadow:3px 3px 0 var(--r);line-height:1.1;-webkit-user-select:text;user-select:text}
+.plist{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.plist li{display:flex;align-items:center;gap:7px;background:var(--panel2);border-radius:10px;padding:8px;font-weight:800;min-width:0;border-left:8px solid #888}
+.plist li .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.plist li .tg{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+.plist li.empty{opacity:.35;border-left-color:#555;font-weight:600}
+.plist li.me{background:#4b2a5e;box-shadow:inset 0 0 0 2px var(--y)}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.chip{padding:10px 6px;border-radius:12px;border:3px solid var(--line);background:var(--panel2);font-weight:800;cursor:pointer;font-size:14px}
+.chip.on{background:var(--y);color:#1a0630;border-color:#1a0630}
+.note{color:var(--muted);font-size:13px;line-height:1.4;margin:8px 0}
+.tip{background:#12072a;border-left:5px solid var(--b);padding:8px 10px;border-radius:8px;color:var(--muted);font-size:13px;line-height:1.4;margin-top:12px}
+.err{background:#3a0a1e;border-left:5px solid var(--r);padding:10px;border-radius:8px;font-weight:700;line-height:1.4}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px 5px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-size:12px;font-weight:700}
+td.n{text-align:right;font-weight:900;color:var(--y)}
+td .dot,.plist .dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px;border:2px solid #1a0630}
+.me{background:rgba(255,210,63,.12)}
+.ok{color:var(--g);font-weight:900}.no{color:var(--r);font-weight:900}
+.stamp{font-family:"Arial Black",Impact,sans-serif;font-size:44px;text-align:center;transform:rotate(-4deg);margin:2px 0 8px;-webkit-text-stroke:2px #1a0630;text-shadow:4px 4px 0 #1a0630}
+.stamp.pass{color:var(--g)}.stamp.fail{color:var(--r)}
+.spin{width:46px;height:46px;border-radius:50%;border:6px solid var(--line);border-top-color:var(--y);animation:sp 0.8s linear infinite;margin:14px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.hs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:10px;font-size:12px;color:var(--muted)}
+.hs span{background:#12072a;border-radius:8px;padding:4px 8px}
+#pad{flex:0 0 auto;display:none;gap:8px;padding:8px;padding-bottom:max(8px,env(safe-area-inset-bottom));background:#0e0620;border-top:3px solid var(--y);height:30vh;height:30dvh;min-height:120px;max-height:240px;touch-action:none}
+body.ingame #pad{display:flex}
+.pb{flex:1;border-radius:20px;border:4px solid #1a0630;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"Arial Black",Impact,sans-serif;font-size:28px;color:#fff;text-shadow:2px 2px 0 #1a0630;box-shadow:inset 0 -10px 0 rgba(0,0,0,.25),0 5px 0 #000;cursor:pointer;touch-action:none;transition:transform .05s,filter .05s;position:relative;overflow:hidden}
+.pb small{font-family:"Segoe UI",system-ui,sans-serif;font-weight:900;font-size:13px;letter-spacing:1px;opacity:.95}
+.pb.r{background:radial-gradient(circle at 40% 30%,#ff8a9c,#ff3b5c 45%,#b5102e)}
+.pb.g{background:radial-gradient(circle at 40% 30%,#8cffb6,#22d66b 45%,#0f8a40)}
+.pb.b{background:radial-gradient(circle at 40% 30%,#9cd0ff,#3a9bff 45%,#1655b5)}
+.pb.dn,.pb.demo{transform:translateY(4px) scale(.97);filter:brightness(1.45)}
+#pad.dim .pb{filter:grayscale(.75) brightness(.6)}
+#toast{position:fixed;left:50%;bottom:34vh;transform:translateX(-50%);background:#000c;color:#fff;padding:9px 16px;border-radius:20px;font-weight:800;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:90vw;text-align:center}
+#toast.on{opacity:1}
+@media (min-width:760px){
+ #pad{height:170px;max-width:760px;width:100%;margin:0 auto;border:3px solid var(--y);border-bottom:0;border-radius:18px 18px 0 0}
+ .pb{font-size:34px}
+}
+@media (max-width:360px){.cards{grid-template-columns:1fr}.plist{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header id="top">
+  <a href="../index.html" title="Kembali ke menu arcade">← Menu</a>
+  <div id="ttl">WARUNG RUSUH</div>
+  <span id="roomTag"></span>
+  <button id="mute" type="button" aria-label="Suara">🔊</button>
+</header>
+<main id="stage">
+  <canvas id="cv"></canvas>
+  <div id="ov"></div>
+</main>
+<div id="pad">
+  <div class="pb r" data-b="0"><span>A</span><small id="pl0">MERAH</small></div>
+  <div class="pb g" data-b="1"><span>S</span><small id="pl1">HIJAU</small></div>
+  <div class="pb b" data-b="2"><span>D</span><small id="pl2">BIRU</small></div>
+</div>
+<div id="toast"></div>
+
+<!-- ===================== INTI: logika game + protokol room (tanpa DOM, bisa diuji di Node) ===================== -->
+<script id="wr-core">
+(function (root) {
+'use strict';
+const WR = {};
+const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; // tanpa I, O, L (dan tanpa angka)
+WR.VERSION = 1;
+WR.ALPHABET = A;
+WR.MAX_PLAYERS = 6;
+WR.PEER_PREFIX = 'warungrusuh-';
+WR.COLORS = ['#ff3b5c', '#ffd23f', '#22d66b', '#3a9bff', '#b46bff', '#ff8a2b'];
+WR.COLOR_NAMES = ['Merah', 'Kuning', 'Hijau', 'Biru', 'Ungu', 'Jingga'];
+WR.LEAD_MS = 6400;          // jeda dari "start" ke GO: intro + norma + READY
+WR.MANGGA_TURN_MS = 10000;  // batas waktu satu giliran
+WR.HB_MS = 2000;            // heartbeat
+WR.DEAD_MS = 9000;          // dianggap putus kalau diam selama ini
+
+WR.rng = function (seed) { // mulberry32
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+WR.shuffle = function (arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+WR.makeCode = function (r) { r = r || Math.random; let s = ''; for (let i = 0; i < 4; i++) s += A[Math.floor(r() * A.length)]; return s; };
+WR.normCode = function (s) { return String(s || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4); };
+WR.validCode = function (s) { return typeof s === 'string' && s.length === 4 && [...s].every(c => A.includes(c)); };
+WR.cleanName = function (s) { const n = String(s == null ? '' : s).replace(/[\u0000-\u001f<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 12); return n || 'Pemain'; };
+WR.err = function (code, msg) { const e = new Error(msg || code); e.code = code; return e; };
+
+WR.GAMES = {
+  mangga: { id: 'mangga', title: 'Mangga atau Petasan', kind: 'turn', tag: 'Petik mangganya, jangan petasannya!',
+    how: ['Penanda berputar keliling piring.', 'Tekan tombol APA SAJA untuk berhenti.', 'Mangga = +1 poin. Petasan = DUAR! (strike)', 'Bergiliran. 3 strike bersama = selesai.'],
+    sub: 'Bergiliran · tekan pas di mangga' },
+  sinyal: { id: 'sinyal', title: 'Sinyal Lemot', kind: 'race', duration: 6, tag: 'Fotonya harus terkirim SEKARANG!!',
+    how: ['Sinyal lemot, foto nyangkut!', 'Pencet A / S / D secepat-cepatnya!', 'Berhenti sebentar = progres turun.', 'Tembus 100% sebelum waktu habis.'],
+    sub: 'Balapan · pencet secepatnya' },
+  pesanan: { id: 'pesanan', title: 'Pesanan Kilat', kind: 'race', duration: 40, tag: 'Pembeli antre, layani cepat!',
+    how: ['Lihat pesanan di atas kasir.', 'MERAH = sate, HIJAU = kerupuk, BIRU = es teh.', 'Tekan sesuai jumlah. Kelebihan = HANGUS!', 'Pesanan makin banyak. Kejar poinnya!'],
+    sub: 'Balapan · hitung & susun' },
+};
+WR.MARATHON = ['mangga', 'sinyal', 'pesanan'];
+WR.SELECTIONS = ['mangga', 'sinyal', 'pesanan', 'maraton'];
+WR.selTitle = function (s) { return s === 'maraton' ? 'Maraton (3 game)' : (WR.GAMES[s] ? WR.GAMES[s].title : s); };
+WR.normaFor = function (id, round) {
+  const k = 1 + 0.1 * (round || 0);
+  if (id === 'mangga') return Math.min(22, Math.ceil(14 * k - 1e-9));
+  if (id === 'sinyal') return Math.round(600 / k) / 100;
+  return Math.ceil(15 * k - 1e-9);
+};
+WR.normaText = function (id, n) { return id === 'sinyal' ? '100% dalam ' + n.toFixed(2) + ' dtk' : n + ' poin'; };
+WR.RANKS = [[0, 'Kerupuk'], [15, 'Gorengan'], [30, 'Sate'], [45, 'Bakso'], [60, 'Nasi Goreng'], [80, 'Raja Warung'], [100, 'Sultan Pasar Malam']];
+WR.rankFor = function (total) { let r = WR.RANKS[0][1]; for (const [min, name] of WR.RANKS) if (total >= min) r = name; return r; };
+
+// ---------- 7.2 Sinyal Lemot ----------
+const SINYAL = {
+  PER_PRESS: 2.5, DECAY: 12, IDLE: 0.2,
+  create(o) { return { limit: (o && o.limit) || 6, t: 0, prog: 0, last: -9, presses: 0, done: false, finishT: null, over: false }; },
+  update(s, t) {
+    if (s.over) return;
+    const dt = Math.max(0, t - s.t); s.t = Math.max(s.t, t);
+    if (t - s.last > SINYAL.IDLE) s.prog = Math.max(0, s.prog - SINYAL.DECAY * dt);
+    if (s.t >= s.limit) { s.t = s.limit; s.over = true; }
+  },
+  input(s, btn, t) {
+    if (s.over || t < 0) return null;
+    SINYAL.update(s, t); if (s.over) return null;
+    s.prog = Math.min(100, s.prog + SINYAL.PER_PRESS); s.presses++; s.last = t;
+    if (s.prog >= 100) { s.done = true; s.finishT = Math.round(t * 100) / 100; s.over = true; return { type: 'done' }; }
+    return { type: 'tick', prog: s.prog };
+  },
+  report(s) { return { score: 0, prog: Math.round(s.prog * 10) / 10, finishT: s.finishT, over: s.over }; },
+};
+// ---------- 7.3 Pesanan Kilat ----------
+const PESANAN = {
+  order(seed, i) {
+    const r = WR.rng((seed ^ Math.imul(i + 1, 0x9E3779B1)) >>> 0);
+    const max = Math.min(5, 1 + Math.floor(i / 3));
+    let c;
+    do { c = [0, 1, 2].map(() => Math.floor(r() * (max + 1))); } while (c[0] + c[1] + c[2] === 0);
+    return c;
+  },
+  points(order) { return 1 + Math.floor((order[0] + order[1] + order[2]) / 6); },
+  create(o) { const s = { seed: o.seed >>> 0, limit: o.limit || 40, norma: o.norma, t: 0, idx: 0, order: null, stacks: [0, 0, 0], score: 0, served: 0, burnt: 0, over: false, ev: null }; s.order = PESANAN.order(s.seed, 0); return s; },
+  next(s) { s.idx++; s.order = PESANAN.order(s.seed, s.idx); s.stacks = [0, 0, 0]; },
+  update(s, t) { if (s.over) return; s.t = Math.max(s.t, t); if (s.t >= s.limit) { s.t = s.limit; s.over = true; } },
+  input(s, btn, t) {
+    if (s.over || t < 0 || !(btn >= 0 && btn <= 2)) return null;
+    PESANAN.update(s, t); if (s.over) return null;
+    s.stacks[btn]++;
+    if (s.stacks[btn] > s.order[btn]) { s.burnt++; s.ev = { type: 'burn', t, btn, order: s.order.slice() }; PESANAN.next(s); return s.ev; }
+    if (s.stacks[0] === s.order[0] && s.stacks[1] === s.order[1] && s.stacks[2] === s.order[2]) {
+      const pts = PESANAN.points(s.order); s.score += pts; s.served++; s.ev = { type: 'ok', t, pts, order: s.order.slice() }; PESANAN.next(s); return s.ev;
+    }
+    return { type: 'add', btn };
+  },
+  report(s) { return { score: s.score, prog: s.served, finishT: null, over: s.over }; },
+};
+// ---------- 7.1 Mangga atau Petasan ----------
+const MANGGA = {
+  N: 12, SPEED0: 3.0, UP: 0.25, HARVESTS: 2, STRIKES: 3,
+  newBoard(r) { const b = new Array(12).fill('M'); b[Math.floor(r() * 12)] = 'P'; return b; },
+  create(seed, norma) { const r = WR.rng(seed >>> 0); return { r, board: MANGGA.newBoard(r), harvest: 1, speed: MANGGA.SPEED0, strikes: 0, team: 0, norma, per: {}, over: false, cleared: false }; },
+  resolve(s, pid, plate) {
+    const per = s.per[pid] || (s.per[pid] = { m: 0, p: 0 });
+    let hit, refilled = false;
+    if (s.over) return { hit: 'none', refilled };
+    if (!(plate >= 0 && plate < 12)) { hit = 'timeout'; s.strikes++; per.p++; }
+    else if (s.board[plate] === 'M') {
+      hit = 'mango'; s.team++; per.m++; s.board[plate] = 'P'; s.speed = Math.round((s.speed + MANGGA.UP) * 1000) / 1000;
+      if (!s.board.includes('M')) {
+        if (s.harvest < MANGGA.HARVESTS) { s.harvest++; s.board = MANGGA.newBoard(s.r); refilled = true; }
+        else { s.over = true; s.cleared = true; }
+      }
+    } else { hit = 'petasan'; s.strikes++; per.p++; }
+    if (s.strikes >= MANGGA.STRIKES) s.over = true;
+    return { hit, refilled };
+  },
+  posAt(phase0, speed, dt) { return (((phase0 + speed * Math.max(0, dt)) % 12) + 12) % 12; },
+  points(s, pid, n) { const per = s.per[pid] || { m: 0, p: 0 }; return n <= 1 ? s.team : Math.max(0, s.team + per.m - 2 * per.p); },
+};
+WR.mods = { sinyal: SINYAL, pesanan: PESANAN, mangga: MANGGA };
+
+WR.racePoints = function (id, r, norma) {
+  if (id === 'sinyal') {
+    const done = r.finishT != null;
+    return { points: done ? 10 + Math.max(0, Math.round((6 - r.finishT) * 5)) : Math.floor(r.prog / 10),
+      pass: done && r.finishT <= norma + 1e-9, detail: done ? r.finishT.toFixed(2) + ' dtk' : Math.floor(r.prog) + '%',
+      sortKey: done ? r.finishT : 1000 - r.prog };
+  }
+  return { points: r.score, pass: r.score >= norma, detail: (r.prog || 0) + ' pesanan', sortKey: -r.score };
+};
+WR.isBonus = function (id, row, norma) {
+  if (id === 'sinyal') return row.finishT != null && row.finishT <= norma / 1.5 + 1e-9;
+  if (id === 'mangga') return row.team >= norma * 1.5;
+  return row.points >= norma * 1.5;
+};
+
+function Emitter() { const h = {}; return { on(e, f) { (h[e] || (h[e] = [])).push(f); }, emit(e, ...a) { (h[e] || []).slice().forEach(f => { try { f(...a); } catch (err) { if (typeof console !== 'undefined') console.error(err); } }); } }; }
+WR.Emitter = Emitter;
+
+// ================= Transport tiruan in-memory (dipakai untuk Latihan Solo, link lokal host, dan uji) =================
+// Host transport:   onConnect(f(id)) onMessage(f(id,msg)) onDisconnect(f(id)) send(id,msg) broadcast(msg) drop(id) close()
+// Client transport: send(msg) onMessage(f(msg)) onClose(f(reason)) close()
+class MemNet {
+  constructor(timers, latency) { this.T = timers; this.lat = latency || 0; this.hosts = new Map(); this.seq = 0; }
+  host(code) { const ex = this.hosts.get(code); if (ex && !ex.closed) throw WR.err('id-taken'); const h = new MemHost(this, code); this.hosts.set(code, h); return h; }
+  connect(code) {
+    return new Promise((res, rej) => {
+      this.T.setTimeout(() => { const h = this.hosts.get(code); if (!h || h.closed) return rej(WR.err('not-found')); res(h._accept()); }, this.lat);
+    });
+  }
+}
+class MemHost {
+  constructor(net, code) { this.net = net; this.code = code; this.links = new Map(); this.h = { c: [], m: [], d: [] }; this.closed = false; }
+  onConnect(f) { this.h.c.push(f); } onMessage(f) { this.h.m.push(f); } onDisconnect(f) { this.h.d.push(f); }
+  _fire(k, ...a) { for (const f of this.h[k]) f(...a); }
+  _accept() { const id = 'm' + (++this.net.seq); const l = new MemLink(this, id); this.links.set(id, l); this._fire('c', id); return l.client; }
+  send(id, m) { const l = this.links.get(id); if (l) l.toClient(m); }
+  broadcast(m) { for (const l of this.links.values()) l.toClient(m); }
+  drop(id) { const l = this.links.get(id); if (l) l.end('dropped'); }
+  close() { this.closed = true; for (const l of [...this.links.values()]) l.end('closed'); }
+}
+class MemLink {
+  constructor(host, id) {
+    this.host = host; this.id = id; this.open = true; this.severed = false; this.cm = []; this.cc = [];
+    const self = this;
+    this.client = { send(m) { self.toHost(m); }, onMessage(f) { self.cm.push(f); }, onClose(f) { self.cc.push(f); }, close() { self.end('left'); }, _sever() { self.severed = true; }, _link: self };
+  }
+  _d(fn) { this.host.net.T.setTimeout(fn, this.host.net.lat); }
+  toClient(m) { if (!this.open || this.severed) return; const s = JSON.stringify(m); this._d(() => { if (!this.severed) for (const f of this.cm) f(JSON.parse(s)); }); }
+  toHost(m) { if (!this.open || this.severed) return; const s = JSON.stringify(m); this._d(() => { if (!this.severed) this.host._fire('m', this.id, JSON.parse(s)); }); }
+  end(reason) {
+    if (!this.open) return; this.open = false; this.host.links.delete(this.id);
+    if (this.severed) return; // putus diam-diam: tidak ada yang diberi tahu (diuji lewat heartbeat)
+    this._d(() => { for (const f of this.cc) f(reason); });
+    this._d(() => this.host._fire('d', this.id));
+  }
+}
+WR.MemNet = MemNet;
+// Gabungkan beberapa host transport (mis. link lokal 'loc' + jaringan PeerJS 'net') jadi satu.
+WR.muxHost = function (parts) {
+  const h = { c: [], m: [], d: [] }; const fire = (k, ...a) => h[k].forEach(f => f(...a));
+  for (const [px, tr] of Object.entries(parts)) {
+    if (!tr) continue;
+    tr.onConnect(id => fire('c', px + ':' + id)); tr.onMessage((id, m) => fire('m', px + ':' + id, m)); tr.onDisconnect(id => fire('d', px + ':' + id));
+  }
+  const split = id => { const i = id.indexOf(':'); return [parts[id.slice(0, i)], id.slice(i + 1)]; };
+  return {
+    onConnect: f => h.c.push(f), onMessage: f => h.m.push(f), onDisconnect: f => h.d.push(f),
+    send(id, m) { const [tr, sub] = split(id); if (tr) tr.send(sub, m); },
+    broadcast(m) { Object.values(parts).forEach(tr => tr && tr.broadcast(m)); },
+    drop(id) { const [tr, sub] = split(id); if (tr) tr.drop(sub); },
+    close() { Object.values(parts).forEach(tr => { try { tr && tr.close(); } catch (e) { /* abaikan */ } }); },
+  };
+};
+
+// ================= HOST: pemegang state room (topologi bintang) =================
+class RoomHost {
+  constructor(tr, o) {
+    this.tr = tr; this.T = o.timers; this.code = o.code || ''; this.solo = !!o.solo; this.max = this.solo ? 1 : (o.max || WR.MAX_PLAYERS);
+    this.rnd = WR.rng(o.seed != null ? o.seed : Math.floor(Math.random() * 2147483647));
+    this.conns = new Map(); this.players = []; this.pidN = 0; this.hostPid = null; this.hostPrefix = o.hostPrefix || 'loc:';
+    this.phase = 'lobby'; this.selection = WR.SELECTIONS.includes(o.selection) ? o.selection : 'mangga';
+    this.gi = 0; this.game = null; this.mara = null; this.lastResults = null; this.lastFinal = false; this.closed = false;
+    tr.onConnect(id => this._conn(id)); tr.onMessage((id, m) => this._msg(id, m)); tr.onDisconnect(id => this._leave(id));
+    this._hb = this.T.setInterval(() => this._beat(), WR.HB_MS);
+  }
+  _now() { return this.T.now(); }
+  _player(pid) { return this.players.find(p => p.id === pid); }
+  _send(id, m) { try { this.tr.send(id, m); } catch (e) { /* koneksi mati */ } }
+  _bcast(m) { for (const p of this.players) this._send(p.conn, m); }
+  _conn(id) { if (this.closed) { this.tr.drop(id); return; } this.conns.set(id, { id, pid: null, seen: this._now(), at: this._now() }); }
+  _msg(id, m) {
+    const c = this.conns.get(id); if (!c || !m || typeof m !== 'object' || this.closed) return;
+    c.seen = this._now();
+    switch (m.t) {
+      case 'hello': return this._hello(id, c, m);
+      case 'ping': return this._send(id, { t: 'pong', c: m.c, h: this._now() });
+      case 'hb': return;
+      case 'bye': return this._leave(id, true);
+    }
+    const p = c.pid && this._player(c.pid); if (!p) return;
+    const isHost = p.id === this.hostPid;
+    switch (m.t) {
+      case 'ready': if (this.phase !== 'game') { p.ready = !!m.v; this._state(); } break;
+      case 'select': if (isHost && this.phase !== 'game' && WR.SELECTIONS.includes(m.g)) { this.selection = m.g; this._state(); } break;
+      case 'start': case 'again': if (isHost && this.phase !== 'game') this._begin(); break;
+      case 'next': if (isHost && this.phase === 'results' && !this.lastFinal) this._next(); break;
+      case 'lobby': if (isHost && this.phase !== 'game') { this.phase = 'lobby'; this.mara = null; this.lastResults = null; this._state(); } break;
+      case 'prog': this._prog(p, m); break;
+      case 'press': this._press(p, m); break;
+    }
+  }
+  _hello(id, c, m) {
+    if (c.pid) return;
+    if (this.players.length >= this.max) { this._send(id, { t: 'reject', reason: 'full' }); this.T.setTimeout(() => this.tr.drop(id), 300); return; }
+    const used = new Set(this.players.map(p => p.color)); let color = 0; while (used.has(color)) color++;
+    let name = WR.cleanName(m.name); const base = name.slice(0, 10); let k = 2;
+    while (this.players.some(p => p.name === name)) name = base + ' ' + (k++);
+    const p = { id: 'p' + (++this.pidN), conn: id, name, color, ready: false };
+    if (!this.hostPid && id.startsWith(this.hostPrefix)) { this.hostPid = p.id; p.ready = true; }
+    this.players.push(p); c.pid = p.id;
+    this._send(id, { t: 'welcome', you: p.id, code: this.code, solo: this.solo, max: this.max });
+    this._state();
+    if (this.phase === 'results' && this.lastResults) this._send(id, this.lastResults);
+  }
+  _leave(id, graceful) {
+    const c = this.conns.get(id); if (!c) return;
+    this.conns.delete(id);
+    if (graceful) this.T.setTimeout(() => this.tr.drop(id), 200);
+    const p = c.pid && this._player(c.pid); if (!p) return;
+    this.players = this.players.filter(q => q !== p);
+    if (p.id === this.hostPid) { this.close('host-left'); return; }
+    this._state();
+    if (this.phase === 'game') this._gameLeave(p);
+  }
+  close(reason) {
+    if (this.closed) return; this.closed = true;
+    for (const id of this.conns.keys()) this._send(id, { t: 'closed', reason: reason || 'host-left' });
+    this.T.clearInterval(this._hb);
+    if (this.game) { this.game.ended = true; this._clearGameTimers(this.game); }
+    this.T.setTimeout(() => { try { this.tr.close(); } catch (e) { /* abaikan */ } }, 250);
+  }
+  _beat() {
+    const now = this._now();
+    for (const p of this.players) this._send(p.conn, { t: 'hb', h: now });
+    for (const [id, c] of [...this.conns]) {
+      if (now - c.seen > WR.DEAD_MS || (!c.pid && now - c.at > 10000)) { this._leave(id); this.tr.drop(id); }
+    }
+  }
+  _maraInfo() { const M = this.mara; return M ? { idx: M.idx, len: M.arcade ? 0 : M.seq.length, seq: M.seq.slice(), lives: M.lives, round: M.round, arcade: M.arcade } : null; }
+  snapshot() {
+    return { t: 'state', code: this.code, phase: this.phase, selection: this.selection, hostId: this.hostPid, solo: this.solo, max: this.max,
+      players: this.players.map(p => ({ id: p.id, name: p.name, color: p.color, ready: p.ready, host: p.id === this.hostPid, inGame: !!(this.game && !this.game.ended && this.game.parts.includes(p.id)) })),
+      mara: this._maraInfo() };
+  }
+  _state() { this._bcast(this.snapshot()); }
+  _begin() {
+    if (!this.players.length) return;
+    if (this.selection === 'maraton') { this.mara = { seq: WR.MARATHON.slice(), idx: 0, round: 0, totals: {}, names: {}, arcade: this.solo, lives: this.solo ? 3 : null }; this._startGame(this.mara.seq[0]); }
+    else { this.mara = null; this._startGame(this.selection); }
+  }
+  _next() {
+    const M = this.mara; if (!M) return;
+    M.idx++;
+    if (M.idx >= M.seq.length) { if (!M.arcade) return; M.round++; M.seq = WR.shuffle(WR.MARATHON.slice(), this.rnd); M.idx = 0; }
+    this._startGame(M.seq[M.idx]);
+  }
+  _startGame(id) {
+    const round = this.mara ? this.mara.round : 0;
+    const G = { gi: ++this.gi, id, kind: WR.GAMES[id].kind, seed: Math.floor(this.rnd() * 2147483647), norma: WR.normaFor(id, round), round,
+      startAt: this._now() + WR.LEAD_MS, parts: this.players.map(p => p.id), names: {}, reports: {}, timers: [], ended: false };
+    for (const p of this.players) { G.names[p.id] = { name: p.name, color: p.color }; p.ready = false; }
+    this.game = G; this.phase = 'game'; this.lastResults = null; this.lastFinal = false;
+    this._bcast({ t: 'start', gi: G.gi, game: id, seed: G.seed, norma: G.norma, round, startAt: G.startAt, parts: G.parts, mara: this._maraInfo() });
+    this._state();
+    if (G.kind === 'race') {
+      G.timers.push(this.T.setTimeout(() => this._finish(), WR.LEAD_MS + WR.GAMES[id].duration * 1000 + 2500));
+      G.live = this.T.setInterval(() => this._live(), 300);
+    } else {
+      G.m = MANGGA.create(G.seed, G.norma); G.turnIdx = -1; G.turnId = 0;
+      G.timers.push(this.T.setTimeout(() => this._nextTurn(), WR.LEAD_MS + 200));
+    }
+  }
+  _clearGameTimers(G) { G.timers.forEach(t => this.T.clearTimeout(t)); G.timers = []; if (G.live) this.T.clearInterval(G.live); if (G.turnTO) this.T.clearTimeout(G.turnTO); }
+  _prog(p, m) {
+    const G = this.game; if (!G || G.ended || G.kind !== 'race' || m.gi !== G.gi || !G.parts.includes(p.id)) return;
+    const num = (v, lo, hi) => { v = Number(v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo; };
+    const prev = G.reports[p.id]; if (prev && prev.over) return;
+    G.reports[p.id] = { score: Math.floor(num(m.score, 0, 9999)), prog: G.id === 'sinyal' ? num(m.prog, 0, 100) : Math.floor(num(m.prog, 0, 9999)),
+      finishT: m.finishT == null ? null : num(m.finishT, 0, 60), over: !!m.over };
+    if (this._allOver()) G.timers.push(this.T.setTimeout(() => this._finish(), 400));
+  }
+  _allOver() { const G = this.game; const present = G.parts.filter(id => this._player(id)); return present.length > 0 && present.every(id => G.reports[id] && G.reports[id].over); }
+  _live() { const G = this.game; if (!G || G.ended) return; this._bcast({ t: 'live', gi: G.gi, rows: this._rows() }); }
+  _rows() {
+    const G = this.game;
+    const rows = G.parts.map(pid => {
+      const nm = G.names[pid]; let r;
+      if (G.kind === 'race') {
+        const rep = G.reports[pid] || { score: 0, prog: 0, finishT: null, over: false };
+        r = WR.racePoints(G.id, rep, G.norma); r.prog = rep.prog; r.score = rep.score; r.finishT = rep.finishT; r.over = rep.over;
+      } else {
+        const per = G.m.per[pid] || { m: 0, p: 0 }; const pts = MANGGA.points(G.m, pid, G.parts.length);
+        r = { points: pts, pass: G.m.team >= G.norma, team: G.m.team, m: per.m, p: per.p, detail: per.m + ' mangga · ' + per.p + ' petasan', sortKey: -pts };
+      }
+      return Object.assign(r, { id: pid, name: nm.name, color: nm.color, left: !this._player(pid) });
+    });
+    rows.sort((a, b) => (a.sortKey - b.sortKey) || (a.left - b.left));
+    rows.forEach((r, i) => { r.rank = i > 0 && rows[i - 1].sortKey === r.sortKey ? rows[i - 1].rank : i + 1; });
+    return rows;
+  }
+  _finish() {
+    const G = this.game; if (!G || G.ended) return;
+    G.ended = true; this._clearGameTimers(G);
+    const rows = this._rows(); const M = this.mara; let final = !M;
+    const teamPass = G.kind === 'turn' ? G.m.team >= G.norma : null;
+    let extra = null;
+    if (M) {
+      for (const r of rows) { M.totals[r.id] = (M.totals[r.id] || 0) + r.points; M.names[r.id] = { name: r.name, color: r.color }; }
+      if (M.arcade) {
+        const r = rows[0]; const pass = !!(r && r.pass); const bonus = pass && WR.isBonus(G.id, r, G.norma);
+        if (!pass) M.lives--; else if (bonus && M.lives < 5) M.lives++;
+        final = M.lives <= 0; extra = { pass, bonus };
+      } else final = M.idx >= M.seq.length - 1;
+    }
+    const msg = { t: 'results', gi: G.gi, game: G.id, norma: G.norma, round: G.round, rows, teamPass, final, arcade: extra,
+      mara: M ? Object.assign(this._maraInfo(), { totals: Object.keys(M.totals).map(id => ({ id, name: M.names[id].name, color: M.names[id].color, total: M.totals[id], rank: WR.rankFor(M.totals[id]), left: !this._player(id) })).sort((a, b) => b.total - a.total) }) : null };
+    this.phase = 'results'; this.lastFinal = final; this.lastResults = msg; this.game = null;
+    this._bcast(msg); this._state();
+  }
+  // ---- giliran (Mangga atau Petasan) ----
+  _nextTurn() {
+    const G = this.game; if (!G || G.ended) return;
+    if (G.m.over) return this._finish();
+    const n = G.parts.length; let pid = null;
+    for (let k = 1; k <= n; k++) { const i = (G.turnIdx + k) % n; if (this._player(G.parts[i])) { G.turnIdx = i; pid = G.parts[i]; break; } }
+    if (!pid) return this._finish();
+    const begin = this._now() + 700;
+    G.cur = { pid, turnId: ++G.turnId, begin, phase0: Math.round(this.rnd() * 12000) / 1000, speed: G.m.speed };
+    this._bcast(Object.assign({ t: 'turn', gi: G.gi, board: G.m.board.join(''), strikes: G.m.strikes, team: G.m.team, harvest: G.m.harvest, per: G.m.per, deadline: begin + WR.MANGGA_TURN_MS }, G.cur));
+    const tid = G.turnId;
+    G.turnTO = this.T.setTimeout(() => this._resolve(pid, tid, -1), 700 + WR.MANGGA_TURN_MS);
+  }
+  _press(p, m) {
+    const G = this.game; if (!G || G.ended || G.kind !== 'turn' || m.gi !== G.gi) return;
+    const cur = G.cur; if (!cur || cur.pid !== p.id || m.turnId !== cur.turnId) return;
+    const plate = Math.floor(Number(m.plate)); if (!(plate >= 0 && plate < 12)) return;
+    this._resolve(p.id, cur.turnId, plate);
+  }
+  _resolve(pid, turnId, plate) {
+    const G = this.game; if (!G || G.ended || !G.cur || G.cur.turnId !== turnId) return;
+    this.T.clearTimeout(G.turnTO); G.cur = null;
+    const res = MANGGA.resolve(G.m, pid, plate);
+    this._bcast({ t: 'turnResult', gi: G.gi, turnId, pid, plate, hit: res.hit, refilled: res.refilled, board: G.m.board.join(''), strikes: G.m.strikes, team: G.m.team, harvest: G.m.harvest, per: G.m.per, over: G.m.over });
+    G.timers.push(this.T.setTimeout(() => (G.m.over ? this._finish() : this._nextTurn()), G.m.over ? 1800 : (res.refilled ? 2200 : 1400)));
+  }
+  _gameLeave(p) {
+    const G = this.game; if (!G || G.ended) return;
+    if (!G.parts.some(id => this._player(id))) return this._finish();
+    if (G.kind === 'turn') {
+      if (G.cur && G.cur.pid === p.id) { this.T.clearTimeout(G.turnTO); G.cur = null; G.timers.push(this.T.setTimeout(() => this._nextTurn(), 600)); }
+    } else if (this._allOver()) G.timers.push(this.T.setTimeout(() => this._finish(), 400));
+  }
+}
+WR.RoomHost = RoomHost;
+
+// ================= CLIENT: dipakai semua pemain (termasuk host lewat link lokal) =================
+class RoomClient {
+  constructor(o) {
+    this.T = o.timers; this.name = WR.cleanName(o.name); this.ev = Emitter();
+    this.offset = 0; this.rtt = Infinity; this.me = null; this.st = null; this.game = null; this.turn = null; this.res = null; this.live = null;
+    this.closed = false; this.lastHeard = 0; this.isHost = false; this.welcomed = false; this._n = 0;
+  }
+  on(e, f) { this.ev.on(e, f); return this; }
+  attach(tr) {
+    this.tr = tr; tr.onMessage(m => this._msg(m)); tr.onClose(r => this._close(r || 'lost'));
+    this.lastHeard = this.T.now();
+    this._send({ t: 'hello', name: this.name, v: WR.VERSION });
+    for (let i = 0; i < 5; i++) this.T.setTimeout(() => this._ping(), 50 + i * 200);
+    this._wd = this.T.setInterval(() => this._watch(), 1000);
+    this._iv = this.T.setInterval(() => { this.update(); this._report(false); }, 250);
+  }
+  _send(m) { if (this.closed || !this.tr) return; try { this.tr.send(m); } catch (e) { /* abaikan */ } }
+  _ping() { this._send({ t: 'ping', c: this.T.now() }); }
+  hostNow() { return this.T.now() + this.offset; }
+  _watch() {
+    if (this.closed) return;
+    if (this.T.now() - this.lastHeard > WR.DEAD_MS) return this._close('lost');
+    if (++this._n % 5 === 0) this._ping();
+  }
+  _msg(m) {
+    if (this.closed || !m || typeof m !== 'object') return;
+    this.lastHeard = this.T.now();
+    switch (m.t) {
+      case 'welcome': this.me = m.you; this.code = m.code; this.solo = m.solo; this.welcomed = true; this.ev.emit('welcome', m); break;
+      case 'reject': this._close(m.reason || 'rejected'); break;
+      case 'closed': this._close(m.reason || 'host-left'); break;
+      case 'pong': { const rtt = this.T.now() - m.c; if (rtt >= 0 && rtt <= this.rtt) { this.rtt = rtt; this.offset = m.h - (m.c + rtt / 2); } break; }
+      case 'hb': this._send({ t: 'hb' }); break;
+      case 'state': this.st = m; this.isHost = m.hostId === this.me; this.ev.emit('state', m); break;
+      case 'start': this._start(m); break;
+      case 'live': if (this.game && m.gi === this.game.gi) { this.live = m.rows; this.ev.emit('live', m.rows); } break;
+      case 'turn': if (this.game && m.gi === this.game.gi) { this.turn = Object.assign({}, m, { pressed: null }); this._applyBoard(m); this.ev.emit('turn', this.turn); } break;
+      case 'turnResult': if (this.game && m.gi === this.game.gi) {
+        const T = this.turn; if (T && T.turnId === m.turnId) { T.result = m; if (!T.pressed) T.pressed = { plate: m.plate, pos: m.plate >= 0 ? m.plate + 0.5 : this._pos(T) }; }
+        this.game.prevBoard = this.game.board; this._applyBoard(m); this.ev.emit('turnResult', m);
+      } break;
+      case 'results': this.res = m; if (this.game && this.game.gi === m.gi) this.game.ended = true; this.ev.emit('results', m); break;
+    }
+  }
+  _applyBoard(m) { const G = this.game; G.board = m.board; G.strikes = m.strikes; G.team = m.team; G.harvest = m.harvest; G.per = m.per || {}; }
+  _start(m) {
+    const id = m.game; if (!WR.GAMES[id]) return;
+    const G = { gi: m.gi, id, kind: WR.GAMES[id].kind, seed: m.seed, norma: m.norma, round: m.round, startAt: m.startAt, parts: m.parts, playing: m.parts.includes(this.me),
+      mara: m.mara, lastSent: '', ended: false, finalSent: false, board: null, strikes: 0, team: 0, harvest: 1, per: {} };
+    if (G.kind === 'race') G.s = WR.mods[id].create({ seed: m.seed, norma: m.norma, limit: id === 'sinyal' ? m.norma : WR.GAMES[id].duration });
+    this.game = G; this.turn = null; this.live = null; this.res = null;
+    this.ev.emit('start', G);
+  }
+  t() { return this.game ? (this.hostNow() - this.game.startAt) / 1000 : 0; }
+  _pos(T) { return MANGGA.posAt(T.phase0, T.speed, (this.hostNow() - T.begin) / 1000); }
+  spinnerPos() { const T = this.turn; if (!T) return null; if (T.pressed) return T.pressed.pos; if (this.hostNow() < T.begin) return T.phase0; return this._pos(T); }
+  update() { const G = this.game; if (!G || G.kind !== 'race' || !G.playing || G.ended) return; const t = this.t(); if (t >= 0) WR.mods[G.id].update(G.s, t); if (G.s.over && !G.finalSent) this._report(true); }
+  input(btn) {
+    const G = this.game; if (!G || G.ended || !G.playing || this.closed) return null;
+    const t = this.t(); if (t < 0) return null;
+    if (G.kind === 'race') { const r = WR.mods[G.id].input(G.s, btn, t); if (G.s.over && !G.finalSent) this._report(true); return r; }
+    const T = this.turn; if (!T || T.pid !== this.me || T.pressed) return null;
+    if (this.hostNow() < T.begin) return null;
+    const pos = this._pos(T); const plate = Math.floor(pos) % 12;
+    T.pressed = { plate, pos };
+    this._send({ t: 'press', gi: G.gi, turnId: T.turnId, plate });
+    return { type: 'press', plate };
+  }
+  _report(final) {
+    const G = this.game; if (!G || G.kind !== 'race' || !G.playing || G.finalSent || this.closed) return;
+    if (this.t() < 0) return;
+    const r = WR.mods[G.id].report(G.s); const key = JSON.stringify(r);
+    if (!final && key === G.lastSent) return;
+    G.lastSent = key; if (G.s.over) G.finalSent = true;
+    this._send(Object.assign({ t: 'prog', gi: G.gi }, r));
+  }
+  // perintah
+  setReady(v) { this._send({ t: 'ready', v: !!v }); }
+  select(g) { this._send({ t: 'select', g }); }
+  start() { this._send({ t: 'start' }); }
+  again() { this._send({ t: 'again' }); }
+  next() { this._send({ t: 'next' }); }
+  toLobby() { this._send({ t: 'lobby' }); }
+  leave() { if (this.closed) return; this._send({ t: 'bye' }); const tr = this.tr; this._close('left', true); this.T.setTimeout(() => { try { tr && tr.close(); } catch (e) { /* abaikan */ } }, 150); }
+  _close(reason, quiet) {
+    if (this.closed) return; this.closed = true;
+    this.T.clearInterval(this._wd); this.T.clearInterval(this._iv);
+    if (!quiet) { try { this.tr && this.tr.close(); } catch (e) { /* abaikan */ } }
+    this.ev.emit('closed', reason);
+  }
+}
+WR.RoomClient = RoomClient;
+
+root.WR = WR;
+if (typeof module !== 'undefined' && module.exports) module.exports = WR;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<!-- ===================== UI: layar, gambar canvas, suara, input, PeerJS ===================== -->
+<script id="wr-ui">
+(function () {
+'use strict';
+const WR = window.WR;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* mode privat */ } },
+};
+const timers = { now: () => Date.now(), setTimeout: (f, ms) => setTimeout(f, ms), clearTimeout: id => clearTimeout(id), setInterval: (f, ms) => setInterval(f, ms), clearInterval: id => clearInterval(id) };
+
+// ---------------- Suara (WebAudio, tanpa file) ----------------
+const Snd = {
+  ctx: null, muted: store.get('wr_mute', false),
+  ensure() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return this.ctx; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+    try { this.ctx = new AC(); this.master = this.ctx.createGain(); this.master.gain.value = 0.45; this.master.connect(this.ctx.destination); } catch (e) { return null; }
+    return this.ctx;
+  },
+  tone(f, d, type, v, f2, delay) {
+    if (this.muted) return; const c = this.ensure(); if (!c) return;
+    const t = c.currentTime + (delay || 0); const o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+    g.gain.setValueAtTime(v || 0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + d + 0.03);
+  },
+  noise(d, v, delay) {
+    if (this.muted) return; const c = this.ensure(); if (!c) return;
+    const t = c.currentTime + (delay || 0); const n = Math.floor(c.sampleRate * d); const buf = c.createBuffer(1, n, c.sampleRate); const ch = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+    const s = c.createBufferSource(); s.buffer = buf; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; const g = c.createGain(); g.gain.value = v || 0.5;
+    s.connect(f); f.connect(g); g.connect(this.master); s.start(t);
+  },
+  play(n, x) {
+    switch (n) {
+      case 'tap': this.tone(520 + (x || 0) * 6, 0.05, 'square', 0.08); break;
+      case 'add': this.tone([392, 523, 659][x || 0] || 440, 0.07, 'square', 0.1); break;
+      case 'ok': [523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.09, 'triangle', 0.16, null, i * 0.06)); break;
+      case 'burn': this.tone(140, 0.35, 'sawtooth', 0.18, 70); break;
+      case 'boom': this.noise(0.7, 0.9); this.tone(160, 0.5, 'sine', 0.4, 40); break;
+      case 'mango': this.tone(880, 0.08, 'triangle', 0.18); this.tone(1320, 0.14, 'triangle', 0.16, null, 0.07); break;
+      case 'ready': this.tone(440, 0.12, 'square', 0.12); break;
+      case 'go': this.tone(880, 0.06, 'sine', 0.22, 1600); this.tone(1700, 0.25, 'sine', 0.18, 2100, 0.06); break;
+      case 'turn': this.tone(988, 0.08, 'triangle', 0.2); this.tone(1318, 0.12, 'triangle', 0.2, null, 0.1); break;
+      case 'pass': [523, 659, 784, 1046, 784, 1046].forEach((f, i) => this.tone(f, 0.12, 'square', 0.12, null, i * 0.1)); break;
+      case 'fail': [392, 330, 262, 196].forEach((f, i) => this.tone(f, 0.18, 'sawtooth', 0.1, null, i * 0.15)); break;
+      case 'end': this.tone(1500, 0.12, 'sine', 0.2, 1900); this.tone(1500, 0.3, 'sine', 0.2, 2200, 0.15); break;
+      case 'join': this.tone(660, 0.07, 'triangle', 0.14); this.tone(990, 0.1, 'triangle', 0.14, null, 0.07); break;
+    }
+  },
+};
+function setMute(m) { Snd.muted = m; store.set('wr_mute', m); $('#mute').textContent = m ? '🔇' : '🔊'; }
+$('#mute').addEventListener('click', () => { setMute(!Snd.muted); if (!Snd.muted) { Snd.ensure(); Snd.play('tap'); } });
+setMute(Snd.muted);
+
+// ---------------- Skor tinggi ----------------
+const HS = store.get('wr_hs', {});
+function saveHS() { store.set('wr_hs', HS); }
+function hsText(id) {
+  if (id === 'sinyal') return HS.sinyal ? 'Rekor: ' + HS.sinyal.toFixed(2) + ' dtk' : 'Belum ada rekor';
+  if (id === 'maraton') return HS.maraton ? 'Rekor arcade: ' + HS.maraton + (HS.pangkat ? ' · ' + HS.pangkat : '') : 'Belum ada rekor';
+  return HS[id] ? 'Rekor: ' + HS[id] + ' poin' : 'Belum ada rekor';
+}
+
+// ---------------- PeerJS (dimuat hanya saat main online) ----------------
+const PEER_SRI = 'sha384-x0YgkOr/3UOZP2CRDxGW9e0Q+2Qjyr3uJrm4xU32Y7ZCNAo7Cc7bjhrZMi/dwczu';
+const PEER_URLS = ['https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js'];
+let peerLoading = null;
+function loadPeer() {
+  if (window.Peer) return Promise.resolve(window.Peer);
+  if (peerLoading) return peerLoading;
+  peerLoading = new Promise((res, rej) => {
+    let i = 0;
+    const tryNext = () => {
+      if (i >= PEER_URLS.length) { peerLoading = null; return rej(WR.err('lib')); }
+      const s = document.createElement('script'); s.src = PEER_URLS[i++]; s.crossOrigin = 'anonymous'; s.integrity = PEER_SRI;
+      s.onload = () => (window.Peer ? res(window.Peer) : tryNext()); s.onerror = () => { s.remove(); tryNext(); };
+      document.head.appendChild(s);
+    };
+    tryNext();
+  });
+  return peerLoading;
+}
+const PeerNet = {
+  code(type) { return ({ 'unavailable-id': 'id-taken', 'invalid-id': 'id-taken', 'peer-unavailable': 'not-found', network: 'broker', 'server-error': 'broker', 'socket-error': 'broker', 'socket-closed': 'broker', 'browser-incompatible': 'browser', 'unavailable-browser': 'browser', webrtc: 'p2p' })[type] || 'unknown'; },
+  host(code) {
+    return new Promise((res, rej) => {
+      let peer; try { peer = new window.Peer(WR.PEER_PREFIX + code, { debug: 0 }); } catch (e) { return rej(WR.err('browser')); }
+      const h = { c: [], m: [], d: [] }; const fire = (k, ...a) => h[k].forEach(f => f(...a)); const conns = new Map(); let n = 0, ready = false, dead = false;
+      const to = setTimeout(() => { if (!ready) { dead = true; try { peer.destroy(); } catch (e) { /* */ } rej(WR.err('broker')); } }, 12000);
+      const tr = {
+        peer, onConnect: f => h.c.push(f), onMessage: f => h.m.push(f), onDisconnect: f => h.d.push(f),
+        send(id, m) { const c = conns.get(id); if (c && c.open) { try { c.send(m); } catch (e) { /* */ } } },
+        broadcast(m) { for (const id of conns.keys()) tr.send(id, m); },
+        drop(id) { const c = conns.get(id); if (c) { conns.delete(id); try { c.close(); } catch (e) { /* */ } fire('d', id); } },
+        close() { dead = true; for (const c of conns.values()) { try { c.close(); } catch (e) { /* */ } } conns.clear(); try { peer.destroy(); } catch (e) { /* */ } },
+      };
+      peer.on('open', () => { if (dead) return; ready = true; clearTimeout(to); res(tr); });
+      peer.on('connection', conn => {
+        const id = String(++n);
+        conn.on('open', () => { if (dead) { try { conn.close(); } catch (e) { /* */ } return; } conns.set(id, conn); fire('c', id); });
+        conn.on('data', d => { if (conns.has(id)) fire('m', id, d); });
+        const gone = () => { if (conns.delete(id)) fire('d', id); };
+        conn.on('close', gone); conn.on('error', gone);
+      });
+      peer.on('error', e => { const c = PeerNet.code(e && e.type); if (!ready) { dead = true; clearTimeout(to); try { peer.destroy(); } catch (x) { /* */ } rej(WR.err(c)); } else console.warn('[peer host]', e && e.type); });
+      peer.on('disconnected', () => { setTimeout(() => { if (!dead && !peer.destroyed && peer.disconnected) { try { peer.reconnect(); } catch (e) { /* */ } } }, 1500); });
+    });
+  },
+  join(code) {
+    return new Promise((res, rej) => {
+      let peer; try { peer = new window.Peer({ debug: 0 }); } catch (e) { return rej(WR.err('browser')); }
+      const h = { m: [], cl: [] }; let conn = null, done = false, stage = 'broker', closed = false;
+      const fail = c => { if (done) return; done = true; clearTimeout(to); try { peer.destroy(); } catch (e) { /* */ } rej(WR.err(c)); };
+      const to = setTimeout(() => fail(stage === 'broker' ? 'broker' : 'p2p'), 15000);
+      const closeOnce = r => { if (closed) return; closed = true; h.cl.forEach(f => f(r)); };
+      const tr = {
+        peer, onMessage: f => h.m.push(f), onClose: f => h.cl.push(f),
+        send(m) { if (conn && conn.open) { try { conn.send(m); } catch (e) { /* */ } } },
+        close() { closed = true; try { conn && conn.close(); } catch (e) { /* */ } setTimeout(() => { try { peer.destroy(); } catch (e) { /* */ } }, 80); },
+      };
+      peer.on('open', () => {
+        stage = 'p2p';
+        conn = peer.connect(WR.PEER_PREFIX + code, { reliable: true });
+        conn.on('open', () => { if (done) return; done = true; clearTimeout(to); res(tr); });
+        conn.on('data', d => h.m.forEach(f => f(d)));
+        conn.on('close', () => { if (done) closeOnce('lost'); });
+        conn.on('error', () => { if (done) closeOnce('lost'); else fail('p2p'); });
+      });
+      peer.on('error', e => { const c = PeerNet.code(e && e.type); if (!done) fail(c); else if (c === 'p2p') closeOnce('lost'); });
+    });
+  },
+};
+
+// ---------------- Pesan error ----------------
+const TIP = 'Tips: tanpa server relay khusus, sebagian jaringan seluler/kantor/kampus bisa menolak koneksi langsung. Coba semua pemain di Wi-Fi yang sama, atau nyalakan hotspot di satu HP dan sambungkan yang lain ke situ.';
+function errText(code, c) {
+  return ({
+    broker: 'Tidak bisa menghubungi server penghubung (PeerJS). Cek internet, lalu coba lagi.',
+    lib: 'Gagal memuat pustaka jaringan (PeerJS) dari CDN. Cek internet atau pemblokir iklan.',
+    'not-found': 'Room ' + (c || '') + ' tidak ditemukan. Cek lagi kodenya, atau room sudah ditutup.',
+    full: 'Room penuh (maksimal ' + WR.MAX_PLAYERS + ' pemain).',
+    p2p: 'Room ketemu, tapi koneksi langsung ke host gagal atau kelamaan (timeout). Jaringan ini kemungkinan memblokir WebRTC.',
+    'host-left': 'Host keluar, room ditutup.',
+    lost: 'Koneksi ke room putus (tidak ada kabar selama ' + (WR.DEAD_MS / 1000) + ' detik).',
+    browser: 'Browser ini tidak mendukung WebRTC. Coba Chrome, Edge, Firefox, atau Safari terbaru.',
+    'id-taken': 'Gagal membuat kode room yang unik. Coba lagi.',
+    timeout: 'Host tidak menjawab (timeout).',
+    rejected: 'Ditolak oleh room.',
+  })[code] || 'Terjadi kesalahan jaringan (' + code + ').';
+}
+
+// ---------------- Status aplikasi ----------------
+const app = { screen: 'menu', pick: 'mangga', mode: null, host: null, client: null, code: null, leaving: false, resTimer: null };
+window.__WR_APP = app;
+const ov = $('#ov');
+const getName = () => store.get('wr_name', '');
+const setName = n => store.set('wr_name', WR.cleanName(n));
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 1800); }
+function setIngame(on) { document.body.classList.toggle('ingame', !!on); requestAnimationFrame(resize); }
+function show(html, screen) { app.screen = screen; ov.classList.remove('hidden'); ov.innerHTML = html; ov.scrollTop = 0; drawIcons(); }
+function hideOv(screen) { app.screen = screen; ov.classList.add('hidden'); ov.innerHTML = ''; }
+function roomTag() { $('#roomTag').textContent = app.mode && app.mode !== 'solo' && app.code ? '#' + app.code : (app.mode === 'solo' ? 'SOLO' : ''); }
+function linkFor(code) { return location.origin + location.pathname + '?room=' + code; }
+
+// ---------- layar ----------
+function screenMenu() {
+  teardown(); setIngame(false); roomTag();
+  const card = id => '<button class="card" data-act="pick" data-g="' + id + '"><canvas class="ic" data-ic="' + id + '" width="22" height="22"></canvas><b>' + esc(WR.GAMES[id].title) + '</b><small>' + esc(WR.GAMES[id].sub) + '</small><em>' + esc(hsText(id)) + '</em></button>';
+  show('<div class="scr"><div class="logo"><span>WARUNG</span><span>RUSUH</span></div>' +
+    '<p class="sub">Party arcade pasar malam · 3 tombol · main bareng pakai kode room (maks 6)</p>' +
+    '<div class="cards">' + WR.MARATHON.map(card).join('') +
+    '<button class="card mara" data-act="pick" data-g="maraton"><canvas class="ic" data-ic="maraton" width="22" height="22"></canvas><b>Maraton</b><small>Ketiga game berurutan, skor dijumlah, pangkat di akhir</small><em>Main bareng</em></button>' +
+    '<button class="card solo wide" data-act="solomenu"><canvas class="ic" data-ic="solo" width="22" height="22"></canvas><span class="tx"><b>Latihan Solo</b><small>Main sendiri, tanpa internet. Maraton solo pakai 3 nyawa.</small></span></button>' +
+    '</div><button class="btn blue" data-act="joinscr">🔑 Punya kode room? Gabung</button>' +
+    '<div class="hs"><span>Keyboard: A · S · D · Spasi</span><span>HP: tombol warna di bawah</span></div></div>', 'menu');
+}
+function screenSoloMenu() {
+  teardown(); setIngame(false);
+  const b = (id, cls) => '<button class="btn ' + cls + '" data-act="solo" data-g="' + id + '">' + esc(id === 'maraton' ? 'Maraton Arcade (3 nyawa)' : WR.GAMES[id].title) + '<br><small style="font-weight:600">' + esc(hsText(id)) + '</small></button>';
+  show('<div class="scr"><h2>Latihan Solo</h2><p class="note">Tanpa jaringan. Logika game sama persis dengan mode online.</p>' +
+    b('mangga', 'red') + b('sinyal', 'green') + b('pesanan', 'blue') + b('maraton', '') +
+    '<button class="btn ghost" data-act="menu">← Kembali</button></div>', 'solomenu');
+}
+function nameField() { return '<label for="nm">Nama panggilan</label><input id="nm" type="text" maxlength="12" autocomplete="nickname" placeholder="mis. Budi" value="' + esc(getName()) + '">'; }
+function screenMode(g) {
+  app.pick = g; setIngame(false);
+  show('<div class="scr"><h2>' + esc(WR.selTitle(g)) + '</h2>' + nameField() +
+    '<button class="btn red" data-act="create">🎪 Buat Room</button>' +
+    '<label for="cd">Gabung dengan kode</label><div class="row"><input id="cd" class="code" type="text" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="KODE" style="flex:2"><button class="btn blue" data-act="join" style="flex:1">Gabung</button></div>' +
+    '<button class="btn green" data-act="solo" data-g="' + g + '">🕹 Main Solo</button>' +
+    '<button class="btn ghost" data-act="menu">← Menu Besar</button>' +
+    '<p class="tip">Buat room lalu bagikan kodenya. Teman membuka link atau mengetik kode. ' + esc(TIP.replace('Tips: ', '')) + '</p></div>', 'mode');
+}
+function screenJoin(code) {
+  setIngame(false);
+  show('<div class="scr"><h2>Gabung Room</h2>' + nameField() +
+    '<label for="cd">Kode room</label><input id="cd" class="code" type="text" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="KODE" value="' + esc(code || '') + '">' +
+    '<button class="btn blue" data-act="join">Gabung!</button><button class="btn ghost" data-act="menu">← Menu Besar</button>' +
+    '<p class="tip">' + esc(TIP) + '</p></div>', 'join');
+  const nm = $('#nm'); if (code && nm && !nm.value) nm.focus();
+}
+function screenBusy(msg) { setIngame(false); show('<div class="scr" style="text-align:center"><h2>' + esc(msg) + '</h2><div class="spin"></div><button class="btn ghost" data-act="menu">Batal</button></div>', 'busy'); }
+function screenError(code, c) {
+  teardown(); setIngame(false); roomTag();
+  const net = ['broker', 'p2p', 'lost', 'not-found', 'timeout', 'lib'].includes(code);
+  show('<div class="scr"><h2>Waduh!</h2><div class="err">' + esc(errText(code, c)) + '</div>' + (net ? '<p class="tip">' + esc(TIP) + '</p>' : '') +
+    '<button class="btn" data-act="menu">OK, ke Menu</button></div>', 'error');
+  Snd.play('fail');
+}
+function screenLobby() {
+  const C = app.client; const st = C && C.st; if (!st) return;
+  setIngame(false); roomTag();
+  const me = C.me; const isHost = C.isHost;
+  const pl = st.players.map(p => '<li style="border-left-color:' + WR.COLORS[p.color] + '"' + (p.id === me ? ' class="me"' : '') + '><span class="dot" style="background:' + WR.COLORS[p.color] + '"></span><span class="nm">' + (p.id === me ? '★ ' : '') + esc(p.name) + '</span><span class="tg">' + (p.host ? '👑 host' : (p.ready ? '✔ siap' : '…')) + '</span></li>').join('');
+  const empty = Array.from({ length: Math.max(0, st.max - st.players.length) }, () => '<li class="empty"><span class="nm">kosong</span></li>').join('');
+  const canShare = !!navigator.share;
+  let ctrl;
+  if (isHost) {
+    ctrl = '<h3>Pilih game</h3><div class="chips">' + WR.SELECTIONS.map(s => '<button class="chip' + (s === st.selection ? ' on' : '') + '" data-act="sel" data-g="' + s + '">' + esc(WR.selTitle(s)) + '</button>').join('') + '</div>' +
+      '<button class="btn red" data-act="start" style="font-size:22px;margin-top:12px">MULAI! ▶</button>' +
+      '<p class="note">★ = kamu. ' + (st.players.length < 2 ? 'Bagikan kode ke teman. Bisa juga mulai sendiri untuk mencoba.' : st.players.filter(p => p.ready).length + '/' + st.players.length + ' siap. Host bisa mulai kapan saja.') + '</p>';
+  } else {
+    const mine = st.players.find(p => p.id === me);
+    ctrl = '<div class="tip" style="border-color:var(--y)">Game dipilih host: <b style="color:var(--y)">' + esc(WR.selTitle(st.selection)) + '</b></div>' +
+      '<button class="btn ' + (mine && mine.ready ? 'green' : '') + '" data-act="ready">' + (mine && mine.ready ? '✔ SIAP!' : 'Tandai Siap') + '</button>' +
+      '<p class="note" style="text-align:center">Menunggu host menekan Mulai…</p>';
+  }
+  show('<div class="scr"><div class="codebox"><small>KODE ROOM</small><b class="code" id="rcode">' + esc(st.code) + '</b>' +
+    '<div class="row"><button class="btn" data-act="copycode">Salin Kode</button><button class="btn" data-act="copylink">Salin Link</button>' + (canShare ? '<button class="btn" data-act="share">Bagikan</button>' : '') + '</div></div>' +
+    '<h3>Pemain (' + st.players.length + '/' + st.max + ')</h3><ul class="plist" id="plist">' + pl + empty + '</ul>' + ctrl +
+    '<button class="btn ghost" data-act="leave">' + (isHost ? 'Tutup Room' : 'Keluar Room') + '</button>' +
+    '<p class="tip">' + esc(TIP) + '</p></div>', 'lobby');
+}
+function screenWaiting() {
+  setIngame(false);
+  show('<div class="scr" style="text-align:center"><h2>Ronde sedang berjalan</h2><p class="note">Kamu sudah masuk room ' + esc(app.code || '') + '. Kamu ikut di ronde berikutnya.</p><div class="spin"></div><button class="btn ghost" data-act="leave">Keluar Room</button></div>', 'waiting');
+}
+function screenResults(m) {
+  const C = app.client; if (!C) return;
+  setIngame(false);
+  const g = WR.GAMES[m.game]; const me = C.me; const mine = m.rows.find(r => r.id === me);
+  const pass = m.game === 'mangga' ? m.teamPass : !!(mine && mine.pass);
+  const multi = m.rows.length > 1;
+  let h = '<div class="scr"><div class="stamp ' + (pass ? 'pass' : 'fail') + '">' + (pass ? 'LULUS!!' : 'GAGAL') + '</div>';
+  h += '<h2>Hasil · ' + esc(g.title) + '</h2><p class="note">Norma: <b>' + esc(WR.normaText(m.game, m.norma)) + '</b>' + (m.game === 'mangga' ? ' · Skor tim: <b>' + (m.rows[0] ? m.rows[0].team : 0) + '</b>' : '') + (m.round ? ' · Putaran ' + (m.round + 1) : '') + '</p>';
+  h += '<table><tr><th>#</th><th>Pemain</th><th>Hasil</th><th style="text-align:right">Poin</th></tr>' + m.rows.map(r =>
+    '<tr' + (r.id === me ? ' class="me"' : '') + '><td>' + (multi && r.rank === 1 ? '🏆' : r.rank) + '</td><td><span class="dot" style="background:' + WR.COLORS[r.color] + '"></span>' + esc(r.name) + (r.left ? ' <small>(keluar)</small>' : '') + '</td><td>' + esc(r.detail) + ' <span class="' + (r.pass ? 'ok' : 'no') + '">' + (r.pass ? '✔' : '✘') + '</span></td><td class="n">' + r.points + '</td></tr>').join('') + '</table>';
+  if (m.game === 'mangga' && multi) h += '<p class="note">Poin pribadi = skor tim + mangga milikmu − 2 per petasan yang kamu ledakkan.</p>';
+  if (m.mara) {
+    const M = m.mara;
+    if (M.arcade) {
+      h += '<h3>Maraton Arcade · Nyawa ' + '❤'.repeat(Math.max(0, M.lives)) + (M.lives <= 0 ? ' (habis)' : '') + '</h3>' + (m.arcade && m.arcade.bonus ? '<p class="ok">Skor ≥150% norma: +1 nyawa!</p>' : '');
+    } else h += '<h3>Total Maraton · game ' + (M.idx + 1) + '/' + M.len + '</h3>';
+    h += '<table>' + M.totals.map((r, i) => '<tr' + (r.id === me ? ' class="me"' : '') + '><td>' + (i + 1) + '</td><td><span class="dot" style="background:' + WR.COLORS[r.color] + '"></span>' + esc(r.name) + '</td><td>' + (m.final ? '<b>' + esc(r.rank) + '</b>' : '') + '</td><td class="n">' + r.total + '</td></tr>').join('') + '</table>';
+    if (m.final) { const t = M.totals.find(r => r.id === me); if (t) h += '<div class="stamp pass" style="font-size:26px;margin-top:12px">Pangkatmu: ' + esc(t.rank) + '</div>'; }
+  }
+  if (C.isHost) {
+    if (m.mara && !m.final) h += '<button class="btn red" data-act="next">Lanjut ▶</button>';
+    h += '<div class="row"><button class="btn green" data-act="again">Main Lagi</button>' + (app.mode === 'solo' ? '<button class="btn" data-act="menu">Menu Besar</button>' : '<button class="btn" data-act="tolobby">Ke Lobi</button>') + '</div>';
+    if (app.mode !== 'solo') h += '<button class="btn ghost" data-act="leave">Tutup Room</button>';
+  } else {
+    h += '<p class="note" style="text-align:center">Menunggu host memilih: lanjut, main lagi, atau ke lobi…</p><button class="btn ghost" data-act="leave">Keluar Room</button>';
+  }
+  show(h + '</div>', 'results');
+}
+
+// ---------- sesi ----------
+function teardown() {
+  clearTimeout(app.resTimer);
+  if (app.client || app.host) app.leaving = true;
+  if (app.client) { try { app.client.leave(); } catch (e) { /* */ } }
+  if (app.host) { const H = app.host; setTimeout(() => { try { H.close('host-left'); } catch (e) { /* */ } }, 60); }
+  app.client = null; app.host = null; app.mode = null; app.code = null;
+  setTimeout(() => { app.leaving = false; }, 0);
+}
+function readName() { const el = $('#nm'); const n = WR.cleanName(el ? el.value : getName()); setName(n); return n; }
+function makeClient(name) {
+  const C = new WR.RoomClient({ timers, name });
+  C.on('welcome', () => { if (app.client !== C) return; if (app.mode === 'solo') C.start(); });
+  C.on('state', st => {
+    if (app.client !== C) return;
+    if (st.phase === 'lobby' && app.mode !== 'solo') { if (app.screen === 'lobby' || app.screen === 'busy' || app.screen === 'results' || app.screen === 'waiting') { if (app.screen === 'busy') Snd.play('join'); screenLobby(); } }
+    else if (st.phase === 'game' && !(C.game && C.game.playing && !C.game.ended) && app.screen !== 'waiting') screenWaiting();
+    else if (st.phase === 'results' && app.screen === 'busy') screenWaiting();
+  });
+  C.on('start', G => { if (app.client !== C) return; clearTimeout(app.resTimer); if (!G.playing) return screenWaiting(); enterGame(G); });
+  C.on('turn', T => { if (app.client !== C) return; if (T.pid === C.me) Snd.play('turn'); });
+  C.on('turnResult', m => { if (app.client !== C) return; onTurnResult(m); });
+  C.on('results', m => {
+    if (app.client !== C) return;
+    recordHS(m);
+    const delay = app.screen === 'game' ? 1100 : 0;
+    clearTimeout(app.resTimer);
+    app.resTimer = setTimeout(() => { if (app.client !== C) return; const mine = m.rows.find(r => r.id === C.me); const pass = m.game === 'mangga' ? m.teamPass : mine && mine.pass; Snd.play(pass ? 'pass' : 'fail'); screenResults(m); }, delay);
+  });
+  C.on('closed', reason => {
+    if (app.client !== C) return;
+    if (reason === 'left') return;
+    app.client = null; screenError(reason, app.code);
+  });
+  return C;
+}
+function recordHS(m) {
+  const C = app.client; const r = m.rows.find(x => x.id === C.me); if (!r) return;
+  if (m.game === 'sinyal') { if (r.finishT != null && (!HS.sinyal || r.finishT < HS.sinyal)) HS.sinyal = r.finishT; }
+  else if (!HS[m.game] || r.points > HS[m.game]) HS[m.game] = r.points;
+  if (m.final && m.mara && m.mara.arcade) { const t = m.mara.totals.find(x => x.id === C.me); if (t && (!HS.maraton || t.total > HS.maraton)) { HS.maraton = t.total; HS.pangkat = t.rank; } }
+  saveHS();
+}
+async function startSolo(sel) {
+  teardown();
+  const name = getName() || 'Kamu';
+  const hub = new WR.MemNet(timers, 0); const loc = hub.host('SOLO');
+  app.host = new WR.RoomHost(WR.muxHost({ loc }), { timers, solo: true, selection: sel });
+  app.mode = 'solo'; app.code = null; roomTag();
+  const ct = await hub.connect('SOLO');
+  app.client = makeClient(name); app.client.attach(ct);
+}
+async function createRoom(sel) {
+  const name = readName(); teardown(); app.mode = 'host';
+  screenBusy('Membuat room…');
+  const token = app.token = {};
+  try {
+    await loadPeer(); if (app.token !== token) return;
+    let tr = null, code = null;
+    for (let i = 0; i < 6 && !tr; i++) {
+      code = WR.makeCode();
+      try { tr = await PeerNet.host(code); } catch (e) { if (e.code !== 'id-taken') throw e; }
+      if (app.token !== token) { if (tr) tr.close(); return; }
+    }
+    if (!tr) throw WR.err('id-taken');
+    const hub = new WR.MemNet(timers, 0); const loc = hub.host('L');
+    app.host = new WR.RoomHost(WR.muxHost({ loc, net: tr }), { timers, code, selection: sel });
+    app.mode = 'host'; app.code = code; roomTag();
+    const ct = await hub.connect('L');
+    app.client = makeClient(name); app.client.attach(ct);
+    history.replaceState(null, '', location.pathname);
+  } catch (e) { if (app.token === token) screenError(e.code || 'unknown'); }
+}
+async function joinRoom(raw) {
+  const code = WR.normCode(raw);
+  if (!WR.validCode(code)) { toast('Kode harus 4 huruf (tanpa I, O, L)'); return; }
+  const name = readName(); teardown(); app.mode = 'guest'; app.code = code;
+  screenBusy('Menyambung ke room ' + code + '…');
+  const token = app.token = {};
+  try {
+    await loadPeer(); if (app.token !== token) return;
+    const ct = await PeerNet.join(code);
+    if (app.token !== token) { ct.close(); return; }
+    app.mode = 'guest'; app.code = code; roomTag();
+    const C = makeClient(name); app.client = C; C.attach(ct);
+    setTimeout(() => { if (app.client === C && !C.welcomed) { C._close('timeout'); } }, 8000);
+  } catch (e) { if (app.token === token) screenError(e.code || 'unknown', code); }
+}
+function leaveRoom() { teardown(); history.replaceState(null, '', location.pathname); screenMenu(); }
+
+// ---------- klik ----------
+ov.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  Snd.ensure(); Snd.play('tap');
+  const act = b.dataset.act, g = b.dataset.g, C = app.client;
+  switch (act) {
+    case 'menu': app.token = null; teardown(); history.replaceState(null, '', location.pathname); screenMenu(); break;
+    case 'pick': screenMode(g); break;
+    case 'solomenu': screenSoloMenu(); break;
+    case 'solo': if ($('#nm')) readName(); startSolo(g || app.pick); break;
+    case 'joinscr': screenJoin(''); break;
+    case 'create': createRoom(app.pick); break;
+    case 'join': joinRoom(($('#cd') || {}).value); break;
+    case 'sel': if (C) C.select(g); break;
+    case 'start': if (C) C.start(); break;
+    case 'ready': if (C && C.st) { const mine = C.st.players.find(p => p.id === C.me); C.setReady(!(mine && mine.ready)); } break;
+    case 'next': if (C) C.next(); break;
+    case 'again': if (C) C.again(); break;
+    case 'tolobby': if (C) C.toLobby(); break;
+    case 'leave': leaveRoom(); break;
+    case 'copycode': copy(app.code, 'Kode disalin: ' + app.code); break;
+    case 'copylink': copy(linkFor(app.code), 'Link disalin'); break;
+    case 'share': navigator.share({ title: 'Warung Rusuh', text: 'Ayo main Warung Rusuh! Kode room: ' + app.code, url: linkFor(app.code) }).catch(() => {}); break;
+  }
+});
+ov.addEventListener('input', e => { if (e.target.id === 'cd') { const p = e.target.selectionStart; e.target.value = WR.normCode(e.target.value); try { e.target.setSelectionRange(p, p); } catch (x) { /* */ } } });
+ov.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.target.id === 'cd' || e.target.id === 'nm')) { if ($('[data-act="join"]') && ($('#cd') || {}).value) joinRoom($('#cd').value); } });
+function copy(text, msg) {
+  const done = () => toast(msg);
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallback());
+  else fallback();
+  function fallback() { const t = document.createElement('textarea'); t.value = text; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { toast(text); } t.remove(); }
+}
+window.addEventListener('pagehide', () => { try { if (app.client) app.client.leave(); if (app.host) app.host.close('host-left'); } catch (e) { /* */ } });
+
+// ---------------- Canvas ----------------
+const cv = $('#cv'); const ctx = cv.getContext('2d');
+const VW = 400, VH = 440;
+const view = { w: 300, h: 300, dpr: 1, s: 1, ox: 0, oy: 0 };
+function resize() {
+  const r = $('#stage').getBoundingClientRect(); view.dpr = Math.min(2, window.devicePixelRatio || 1);
+  view.w = Math.max(1, r.width); view.h = Math.max(1, r.height);
+  cv.width = Math.round(view.w * view.dpr); cv.height = Math.round(view.h * view.dpr);
+  view.s = Math.min(view.w / VW, view.h / VH); view.ox = (view.w - VW * view.s) / 2; view.oy = (view.h - VH * view.s) / 2;
+}
+window.addEventListener('resize', resize); resize();
+
+// sprite pixel art (digambar dari string)
+const SPR = {
+  mango: { rows: ['.....gG.....', '....gGg.....', '.....g......', '...ooooo....', '..oyyyyyoo..', '.oyYYyyyyro.', '.oyYyyyyyro.', '.oyyyyyyrro.', '.oyyyyyrrro.', '..oyyyrrro..', '...ooooo....'], pal: { g: '#167a34', G: '#5be36b', o: '#9a3b00', y: '#ffc21a', Y: '#fff3a0', r: '#ff7a1a' } },
+  petasan: { rows: ['....k.....', '....k.....', '...kk.....', '..wwwwww..', '.krRrrrrk.', '.krRrrrrk.', '.kyyyyyyk.', '.krRrrrrk.', '.krRrrrrk.', '.kyyyyyyk.', '.krRrrrrk.', '..wwwwww..'], pal: { k: '#2a1a12', w: '#f5e6c8', r: '#e01e37', R: '#ff8a9a', y: '#ffd23f' } },
+  cat: { rows: ['.k........k.', 'kok......kok', 'kook....kook', 'kooookkooook', 'kooooooooook', 'kowwooooowwk', 'kowbooooobwk', 'kooooppooook', 'kooookkooook', '.kowwwwwwok.', '..kkkkkkkk..'], pal: { k: '#2a1a12', o: '#ff9a2b', w: '#fff', b: '#111', p: '#ff6b9a' } },
+};
+const sprCache = {};
+function sprImg(name) {
+  if (sprCache[name]) return sprCache[name];
+  const s = SPR[name]; const c = document.createElement('canvas'); c.width = s.rows[0].length; c.height = s.rows.length; const x = c.getContext('2d');
+  s.rows.forEach((row, j) => [...row].forEach((ch, i) => { if (s.pal[ch]) { x.fillStyle = s.pal[ch]; x.fillRect(i, j, 1, 1); } }));
+  return (sprCache[name] = c);
+}
+function spr(c, name, x, y, sc) { const im = sprImg(name); c.imageSmoothingEnabled = false; c.drawImage(im, Math.round(x - im.width * sc / 2), Math.round(y - im.height * sc / 2), im.width * sc, im.height * sc); }
+function comic(c, text, x, y, size, fill, rot, stroke) {
+  c.save(); c.translate(x, y); if (rot) c.rotate(rot);
+  c.font = '900 ' + size + 'px "Arial Black", Impact, "Segoe UI", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+  c.lineWidth = Math.max(3, size * 0.2); c.strokeStyle = stroke || '#1a0630'; c.strokeText(text, 0, 0); c.fillStyle = fill || '#ffd23f'; c.fillText(text, 0, 0); c.restore();
+}
+function txt(c, text, x, y, size, color, align, weight) { c.font = (weight || 800) + ' ' + size + 'px "Segoe UI", system-ui, sans-serif'; c.textAlign = align || 'center'; c.textBaseline = 'middle'; c.fillStyle = color || '#fff'; c.fillText(text, x, y); }
+function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function drawSate(c, x, y, s) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.fillStyle = '#c9925a'; c.fillRect(-18, -1.5, 36, 3);
+  for (let i = 0; i < 3; i++) { c.fillStyle = '#7a3412'; rrect(c, -13 + i * 9, -5, 8, 10, 2); c.fill(); c.fillStyle = '#b5561f'; c.fillRect(-12 + i * 9, -4, 3, 3); }
+  c.restore();
+}
+function drawKerupuk(c, x, y, s) {
+  c.save(); c.translate(x, y); c.scale(s, s); c.beginPath();
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? 10 : 12; c.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.55); }
+  c.closePath(); c.fillStyle = '#fff1c4'; c.fill(); c.strokeStyle = '#d9b25c'; c.lineWidth = 1.5; c.stroke();
+  c.fillStyle = '#e8c070'; [[-4, -1], [3, 1], [0, -2], [6, -1], [-7, 1]].forEach(([a, b]) => c.fillRect(a, b, 1.6, 1.6)); c.restore();
+}
+function drawTeh(c, x, y, s) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.beginPath(); c.moveTo(-8, -10); c.lineTo(8, -10); c.lineTo(6, 10); c.lineTo(-6, 10); c.closePath(); c.fillStyle = 'rgba(220,240,255,.5)'; c.fill();
+  c.beginPath(); c.moveTo(-7.4, -5); c.lineTo(7.4, -5); c.lineTo(6, 10); c.lineTo(-6, 10); c.closePath(); c.fillStyle = '#c9661a'; c.fill();
+  c.fillStyle = '#eaf6ff'; c.fillRect(-5, -4, 4, 4); c.fillRect(1, -2, 4, 4);
+  c.strokeStyle = '#ff3b5c'; c.lineWidth = 2; c.beginPath(); c.moveTo(3, -10); c.lineTo(6, -16); c.stroke();
+  c.strokeStyle = '#fff'; c.lineWidth = 1; c.beginPath(); c.moveTo(-8, -10); c.lineTo(-6, 10); c.stroke(); c.restore();
+}
+function drawPhoneIcon(c, x, y, s) { c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = '#222'; rrect(c, -7, -11, 14, 22, 3); c.fill(); c.fillStyle = '#3a9bff'; c.fillRect(-5, -8, 10, 14); c.fillStyle = '#ffd23f'; c.fillRect(-5, 0, 6, 2); c.restore(); }
+function drawIcons() {
+  document.querySelectorAll('canvas.ic').forEach(el => {
+    const c = el.getContext('2d'); c.clearRect(0, 0, 22, 22); const k = el.dataset.ic;
+    if (k === 'mangga') spr(c, 'mango', 11, 11, 1.6);
+    else if (k === 'sinyal') drawPhoneIcon(c, 11, 11, 0.9);
+    else if (k === 'pesanan') drawSate(c, 11, 11, 0.55);
+    else if (k === 'maraton') { spr(c, 'mango', 6, 7, 0.8); drawTeh(c, 15, 12, 0.45); drawSate(c, 9, 17, 0.35); }
+    else { spr(c, 'cat', 11, 11, 1.6); }
+  });
+}
+
+// ---------------- Efek ----------------
+const fx = { shake: 0, flash: 0, flashC: '#fff', parts: [], pops: [] };
+function burst(x, y, colors, n, sp) { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = (sp || 160) * (0.3 + Math.random()); fx.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, life: 0.6 + Math.random() * 0.5, age: 0, c: colors[i % colors.length], s: 3 + Math.random() * 4 }); } }
+function pop(text, x, y, color, size) { fx.pops.push({ text, x, y, c: color || '#ffd23f', size: size || 28, age: 0, life: 1 }); }
+function stepFx(dt) {
+  fx.shake = Math.max(0, fx.shake - dt * 30); fx.flash = Math.max(0, fx.flash - dt * 3);
+  fx.parts = fx.parts.filter(p => (p.age += dt) < p.life); fx.parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 420 * dt; });
+  fx.pops = fx.pops.filter(p => (p.age += dt) < p.life);
+}
+function drawFx(c) {
+  fx.parts.forEach(p => { c.globalAlpha = 1 - p.age / p.life; c.fillStyle = p.c; c.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }); c.globalAlpha = 1;
+  fx.pops.forEach(p => { const k = p.age / p.life; c.globalAlpha = 1 - k * k; comic(c, p.text, p.x, p.y - k * 40, p.size * (1 + Math.max(0, 0.3 - k)), p.c, -0.08); }); c.globalAlpha = 1;
+}
+
+// ---------------- Masuk game ----------------
+const PADLBL = { mangga: ['TEKAN', 'TEKAN', 'TEKAN'], sinyal: ['PENCET', 'PENCET', 'PENCET'], pesanan: ['SATE', 'KERUPUK', 'ES TEH'] };
+let gv = null; // status tampilan game lokal
+function enterGame(G) {
+  hideOv('game'); setIngame(true);
+  gv = { G, lastPhase: '', tickAt: 0, beeped: {}, lastProgSound: 0 };
+  fx.parts = []; fx.pops = [];
+  const L = PADLBL[G.id]; for (let i = 0; i < 3; i++) $('#pl' + i).textContent = L[i];
+  $('#ttl').textContent = WR.GAMES[G.id].title;
+}
+function onTurnResult(m) {
+  if (!gv) return; const C = app.client;
+  const p = platePos(m.plate);
+  if (m.hit === 'mango') { Snd.play('mango'); burst(p.x, p.y, ['#ffd23f', '#ff9a2b', '#5be36b', '#fff'], 22, 140); pop('+1', p.x, p.y - 20, '#5be36b', 30); }
+  else { Snd.play('boom'); fx.shake = 14; fx.flash = 1; fx.flashC = '#ffef9a'; burst(p.x, p.y, ['#ff3b5c', '#ffd23f', '#ff8a2b', '#fff', '#555'], 50, 280); pop(m.hit === 'timeout' ? 'KELAMAAN!' : 'DUAR!!', p.x, p.y - 10, '#ff3b5c', 40); }
+  if (m.refilled) { pop('PANEN KEDUA!', 200, 250, '#ffd23f', 36); Snd.play('ok'); }
+  if (m.over && C) pop(m.strikes >= 3 ? 'SELESAI!' : 'PANEN HABIS!', 200, 200, '#fff', 44);
+}
+
+// ---------------- Input ----------------
+function press(btn) {
+  Snd.ensure();
+  const C = app.client; if (!C || app.screen !== 'game' || !C.game) return;
+  if (btn >= 0 && btn <= 2) { const el = document.querySelector('.pb[data-b="' + btn + '"]'); if (el) { el.classList.add('dn'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('dn'), 90); } }
+  const G = C.game; const r = C.input(btn); if (!r) return;
+  if (G.id === 'sinyal') {
+    if (r.type === 'done') { Snd.play('end'); fx.flash = 0.8; fx.flashC = '#9cffc4'; burst(200, 230, ['#22d66b', '#ffd23f', '#3a9bff', '#fff'], 40, 220); pop('TERKIRIM!', 200, 220, '#22d66b', 40); }
+    else { const now = performance.now(); if (now - gv.lastProgSound > 45) { gv.lastProgSound = now; Snd.tone(300 + G.s.prog * 7, 0.03, 'square', 0.06); } }
+  } else if (G.id === 'pesanan') {
+    if (r.type === 'add') Snd.play('add', btn);
+    else if (r.type === 'ok') { Snd.play('ok'); burst(200, 120, ['#ffd23f', '#5be36b', '#fff'], 18, 150); pop('+' + r.pts + ' MANTAP!', 200, 140, '#5be36b', 30); }
+    else if (r.type === 'burn') { Snd.play('burn'); fx.shake = 8; burst(WR_COLX[btn], 330, ['#555', '#888', '#333', '#ff8a2b'], 26, 120); pop('HANGUS!', 200, 140, '#ff3b5c', 38); }
+  } else if (G.id === 'mangga') Snd.play('tap');
+}
+const KEYS = { a: 0, s: 1, d: 2, ' ': 3, arrowleft: 0, arrowdown: 1, arrowright: 2, j: 0, k: 1, l: 2 };
+window.addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  const k = KEYS[e.key.toLowerCase()]; if (k == null) return;
+  if (app.screen === 'game') e.preventDefault();
+  if (e.repeat) return;
+  press(k);
+});
+document.querySelectorAll('.pb').forEach(el => {
+  el.addEventListener('pointerdown', e => { e.preventDefault(); press(+el.dataset.b); });
+  el.addEventListener('contextmenu', e => e.preventDefault());
+});
+cv.addEventListener('pointerdown', e => { if (app.screen === 'game' && app.client && app.client.game && app.client.game.id !== 'pesanan') { e.preventDefault(); press(3); } });
+
+// ---------------- Gambar ----------------
+const STARS = Array.from({ length: 60 }, (_, i) => { const r = WR.rng(i * 7 + 3); return [r(), r() * 0.6, r()]; });
+let clock = 0;
+function drawBg(c, w, h) {
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#12052b'); g.addColorStop(0.6, '#3a0f5c'); g.addColorStop(1, '#5c1a4a'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  STARS.forEach(([x, y, k]) => { c.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(clock * (1 + k) + k * 9)); c.fillStyle = '#fff'; c.fillRect(x * w, y * h, 2, 2); }); c.globalAlpha = 1;
+  // bianglala
+  const R = Math.min(w, h) * 0.32, cx = w * 0.82, cy = h * 0.62; c.globalAlpha = 0.28;
+  c.strokeStyle = '#ff5fc8'; c.lineWidth = 3; c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke();
+  for (let i = 0; i < 10; i++) { const a = clock * 0.15 + i / 10 * Math.PI * 2; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); c.stroke(); c.fillStyle = WR.COLORS[i % 6]; c.fillRect(cx + Math.cos(a) * R - 6, cy + Math.sin(a) * R, 12, 10); }
+  c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx - R * 0.5, h); c.moveTo(cx, cy); c.lineTo(cx + R * 0.5, h); c.stroke(); c.globalAlpha = 1;
+  // lampu gantung
+  for (let row = 0; row < 2; row++) {
+    const y0 = 10 + row * 26, sag = 16, seg = 90; c.strokeStyle = '#2a1a12'; c.lineWidth = 2; c.beginPath();
+    for (let x = -seg / 2 * row; x <= w + seg; x += 4) { const ph = ((x % seg) + seg) % seg / seg; const y = y0 + Math.sin(ph * Math.PI) * sag; x === -seg / 2 * row ? c.moveTo(x, y) : c.lineTo(x, y); }
+    c.stroke();
+    let i = 0; for (let x = -seg / 2 * row; x <= w + seg; x += 22) { const ph = ((x % seg) + seg) % seg / seg; const y = y0 + Math.sin(ph * Math.PI) * sag; const on = (Math.floor(clock * 3) + i + row) % 3 !== 0; c.fillStyle = on ? ['#ffd23f', '#ff3b5c', '#22d66b', '#3a9bff', '#ff5fc8'][i % 5] : '#553'; c.beginPath(); c.arc(x, y + 5, 4, 0, Math.PI * 2); c.fill(); i++; }
+  }
+  // tenda
+  const th = Math.min(40, h * 0.07); for (let x = 0, i = 0; x < w; x += 30, i++) { c.fillStyle = i % 2 ? '#ff3b5c' : '#fff1e0'; c.globalAlpha = 0.18; c.fillRect(x, h - th, 30, th); } c.globalAlpha = 1;
+}
+const WR_COLX = [70, 200, 330];
+function platePos(i) { const a = ((i + 0.5) / 12) * Math.PI * 2 - Math.PI / 2; return { x: 200 + Math.cos(a) * 128, y: 258 + Math.sin(a) * 128 }; }
+function liveStrip(c, rows, fmt, hiId) {
+  if (!rows || rows.length < 2) return 0;
+  const n = rows.length, w = VW / n;
+  rows.forEach((r, i) => {
+    const x = i * w; c.fillStyle = 'rgba(10,4,24,.9)'; c.fillRect(x + 1, 0, w - 2, 30); if (r.id === hiId) { c.fillStyle = 'rgba(255,210,63,.3)'; c.fillRect(x + 1, 0, w - 2, 30); }
+    c.fillStyle = WR.COLORS[r.color]; c.fillRect(x + 1, 26, (w - 2) * Math.max(0, Math.min(1, r.bar == null ? 0 : r.bar)), 4);
+    txt(c, (r.rank || i + 1) + '. ' + r.name.slice(0, n > 4 ? 5 : 8), x + w / 2, 9, 10, WR.COLORS[r.color], 'center', 900);
+    txt(c, fmt(r), x + w / 2, 20, 11, '#fff', 'center', 800);
+  });
+  return 32;
+}
+function drawIntro(c, G, t) {
+  const g = WR.GAMES[G.id];
+  c.fillStyle = 'rgba(10,4,24,.82)'; rrect(c, 14, 40, VW - 28, VH - 60, 20); c.fill(); c.strokeStyle = '#ffd23f'; c.lineWidth = 4; c.stroke();
+  const k = Math.min(1, (t + 6.4) * 3);
+  comic(c, g.title.toUpperCase(), 200, 92, g.title.length > 14 ? 30 : 38, '#ffd23f', -0.06 * k);
+  txt(c, g.tag, 200, 136, 15, '#ff5fc8', 'center', 900);
+  txt(c, 'CARA MAIN', 200, 172, 13, '#c9b8f0', 'center', 900);
+  g.how.forEach((line, i) => txt(c, line, 200, 198 + i * 26, 15, '#fff', 'center', 700));
+  // peragaan
+  const y = 330;
+  if (G.id === 'mangga') { spr(c, 'mango', 150, y, 3); spr(c, 'petasan', 250, y, 3); txt(c, '+1', 150, y + 34, 16, '#5be36b'); txt(c, 'STRIKE', 250, y + 34, 16, '#ff3b5c'); }
+  else if (G.id === 'sinyal') { drawPhoneIcon(c, 200, y, 2.4); for (let i = 0; i < 3; i++) if (Math.sin(clock * 30 + i * 2) > 0) comic(c, 'ASD'[i], 150 + i * 50, y + 38, 18, WR.COLORS[[0, 2, 3][i]]); }
+  else { drawSate(c, 110, y, 1.5); drawKerupuk(c, 200, y, 1.6); drawTeh(c, 290, y, 1.5); ['A', 'S', 'D'].forEach((l, i) => comic(c, l, WR_COLX[i] + (i === 0 ? 40 : i === 2 ? -40 : 0), y + 34, 18, WR.COLORS[[0, 2, 3][i]])); }
+  if (G.mara) txt(c, G.mara.arcade ? 'Maraton Arcade · Putaran ' + (G.round + 1) + ' · Nyawa ' + '❤'.repeat(Math.max(0, G.mara.lives)) : 'Maraton · game ' + (G.mara.idx + 1) + '/' + G.mara.len, 200, 400, 13, '#ffd23f');
+}
+function padDemo(G, t) {
+  const els = document.querySelectorAll('.pb'); let on = [false, false, false];
+  if (t < -3 && t > -6.4) {
+    if (G.id === 'mangga') { const i = Math.floor(clock * 1.5) % 3; on[i] = (clock * 1.5) % 1 < 0.3; }
+    else if (G.id === 'sinyal') on = [0, 1, 2].map(i => Math.sin(clock * 40 + i * 2.1) > 0.3);
+    else { const seq = [0, 0, 1, 2, 2, 2]; const k = Math.floor(clock * 4) % 8; if (k < 6 && (clock * 4) % 1 < 0.5) on[seq[k]] = true; }
+  }
+  els.forEach((el, i) => el.classList.toggle('demo', on[i]));
+}
+function drawMangga(c, G, C) {
+  const per = G.per || {}; const T = C.turn;
+  const rows = G.parts.map(id => { const n = (C.st && C.st.players.find(p => p.id === id)) || null; const pp = per[id] || { m: 0, p: 0 }; return { id, name: n ? n.name : '(keluar)', color: n ? n.color : 0, m: pp.m, p: pp.p, bar: null }; });
+  const top = liveStrip(c, rows, r => '🥭' + r.m + ' 💥' + r.p, T && T.pid);
+  // HUD
+  c.fillStyle = 'rgba(10,4,24,.72)'; rrect(c, 4, top + 4, VW - 8, 40, 10); c.fill();
+  for (let i = 0; i < 3; i++) { const x = 22 + i * 30, y = top + 22; c.fillStyle = i < (G.strikes || 0) ? '#ff3b5c' : 'rgba(255,255,255,.15)'; rrect(c, x - 12, y - 12, 24, 24, 5); c.fill(); comic(c, '✕', x, y + 1, 18, i < (G.strikes || 0) ? '#fff' : 'rgba(255,255,255,.3)'); }
+  txt(c, 'SKOR TIM', 330, top + 12, 11, '#c9b8f0', 'center', 900); comic(c, (G.team || 0) + ' / ' + G.norma, 330, top + 32, 22, (G.team || 0) >= G.norma ? '#5be36b' : '#ffd23f');
+  txt(c, 'PANEN ' + (G.harvest || 1) + '/2', 200, top + 14, 12, '#ff5fc8', 'center', 900);
+  const board = G.board || 'MMMMMMMMMMMM';
+  const pos = C.spinnerPos(); const cur = pos == null ? -1 : Math.floor(pos) % 12;
+  // meja bundar
+  c.fillStyle = '#7a3d1a'; c.beginPath(); c.arc(200, 258, 166, 0, Math.PI * 2); c.fill(); c.fillStyle = '#9c5426'; c.beginPath(); c.arc(200, 258, 156, 0, Math.PI * 2); c.fill();
+  for (let i = 0; i < 12; i++) {
+    const p = platePos(i); const hl = i === cur;
+    if (hl) { c.fillStyle = T && T.result ? (T.result.hit === 'mango' ? '#5be36b' : '#ff3b5c') : '#ffd23f'; c.beginPath(); c.arc(p.x, p.y, 33, 0, Math.PI * 2); c.fill(); }
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(p.x, p.y, 27, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#3aa0ff'; c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, 23, 0, Math.PI * 2); c.stroke();
+    if (board[i] === 'M') spr(c, 'mango', p.x, p.y, 3.2);
+    else { spr(c, 'petasan', p.x, p.y + 2, 3); if (Math.sin(clock * 25 + i) > 0) { c.fillStyle = '#ffd23f'; c.fillRect(p.x - 2, p.y - 20, 5, 5); c.fillStyle = '#fff'; c.fillRect(p.x - 1, p.y - 19, 2, 2); } }
+  }
+  // penanda
+  if (pos != null) {
+    const a = (pos / 12) * Math.PI * 2 - Math.PI / 2; c.save(); c.translate(200, 258); c.rotate(a);
+    c.fillStyle = '#ffd23f'; c.strokeStyle = '#1a0630'; c.lineWidth = 3; c.beginPath(); c.moveTo(50, -9); c.lineTo(96, 0); c.lineTo(50, 9); c.closePath(); c.fill(); c.stroke(); c.restore();
+  }
+  // tengah
+  const tp = T ? rows.find(r => r.id === T.pid) : null; const mine = T && T.pid === C.me;
+  c.fillStyle = tp ? WR.COLORS[tp.color] : '#2a1252'; c.beginPath(); c.arc(200, 258, 52, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#1a0630'; c.lineWidth = 4; c.stroke();
+  if (T && !T.result) {
+    if (mine) { const k = 1 + 0.08 * Math.sin(clock * 12); comic(c, T.pressed ? '...' : 'TEKAN!', 200, 250, 22 * k, '#fff'); txt(c, 'giliranmu', 200, 278, 12, '#1a0630', 'center', 900); }
+    else { txt(c, 'Giliran', 200, 243, 12, '#1a0630', 'center', 900); comic(c, tp ? tp.name.slice(0, 8) : '?', 200, 266, 17, '#fff'); }
+    const left = Math.max(0, (T.deadline - C.hostNow()) / 1000); if (left < 4 && !T.pressed) txt(c, left.toFixed(1), 200, 330, 16, '#ff3b5c', 'center', 900);
+  }
+  $('#pad').classList.toggle('dim', !(mine && T && !T.pressed));
+}
+const PHOTO_COL = ['#ffb36b', '#6b3a1a', '#3a1a6b'];
+function drawPhoto(c, i, x, y, w, h) {
+  c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip();
+  if (i === 0) { c.fillStyle = '#7ad3ff'; c.fillRect(x, y, w, h); c.fillStyle = '#5bbf5b'; c.fillRect(x, y + h * 0.75, w, h); spr(c, 'cat', x + w / 2, y + h / 2 + 2, 4.6); }
+  else if (i === 1) { c.fillStyle = '#2a1a12'; c.fillRect(x, y, w, h); c.fillStyle = '#ff5a1f'; for (let k = 0; k < 8; k++) c.fillRect(x + 8 + k * 19, y + h - 14, 12, 8); c.fillStyle = '#555'; c.fillRect(x, y + h - 20, w, 5); for (let k = 0; k < 4; k++) drawSate(c, x + 30 + k * 34, y + h / 2, 1.3); c.fillStyle = 'rgba(255,255,255,.3)'; for (let k = 0; k < 5; k++) { c.beginPath(); c.arc(x + 20 + k * 30, y + 12 + Math.sin(clock * 3 + k) * 4, 7, 0, Math.PI * 2); c.fill(); } }
+  else { const g = c.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, '#1a0b3d'); g.addColorStop(1, '#a2337a'); c.fillStyle = g; c.fillRect(x, y, w, h); const cx = x + w / 2, cy = y + h * 0.55, R = h * 0.42; c.strokeStyle = '#ffd23f'; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + clock * 0.5; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); c.stroke(); c.fillStyle = WR.COLORS[k % 6]; c.fillRect(cx + Math.cos(a) * R - 4, cy + Math.sin(a) * R - 3, 8, 7); } }
+  c.restore();
+}
+function drawSinyal(c, G, C, t) {
+  const s = G.s;
+  const rows = (C.live || []).map(r => Object.assign({}, r, { bar: r.finishT != null ? 1 : r.prog / 100 }));
+  const me = C.me; const mr = rows.find(r => r.id === me); if (mr) { mr.bar = s.prog / 100; }
+  liveStrip(c, rows, r => r.finishT != null ? r.finishT.toFixed(2) + 's' : Math.floor(r.id === me ? s.prog : r.prog) + '%', me);
+  // ponsel
+  c.fillStyle = '#1a1a22'; rrect(c, 104, 46, 192, 380, 26); c.fill(); c.strokeStyle = '#ff5fc8'; c.lineWidth = 3; c.stroke();
+  c.fillStyle = '#f2f0ff'; rrect(c, 114, 70, 172, 330, 8); c.fill();
+  // status bar
+  c.fillStyle = '#2a1252'; c.fillRect(114, 70, 172, 18);
+  const bars = Math.floor((Math.sin(clock * 7) + 1) * 1.2); for (let i = 0; i < 4; i++) { c.fillStyle = i <= bars ? '#fff' : '#665'; c.fillRect(120 + i * 6, 84 - i * 3 - 3, 4, i * 3 + 3); }
+  txt(c, 'E', 152, 79, 11, '#ffd23f', 'center', 900); txt(c, '19.45', 270, 79, 10, '#fff', 'right', 800);
+  txt(c, s.done ? 'Terkirim ✔' : 'Mengunggah 3 foto…', 200, 102, 13, '#2a1252', 'center', 900);
+  const ph = 72; for (let i = 0; i < 3; i++) {
+    const x = 124, y = 114 + i * (ph + 6), w = 152; const part = Math.max(0, Math.min(1, (s.prog - i * 33.34) / 33.33));
+    c.fillStyle = '#cfc8e6'; c.fillRect(x, y, w, ph);
+    if (part > 0) { const rh = Math.floor(ph * part / 6) * 6; c.save(); c.beginPath(); c.rect(x, y, w, rh); c.clip(); drawPhoto(c, i, x, y, w, ph); c.restore(); if (part < 1) { c.fillStyle = '#ffd23f'; c.fillRect(x, y + rh - 2, w, 3); } }
+    else { c.fillStyle = '#a9a0c6'; for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(x + w / 2 - 14 + k * 14, y + ph / 2, 3 + (Math.floor(clock * 4) % 3 === k ? 2 : 0), 0, Math.PI * 2); c.fill(); } }
+  }
+  // bar progres
+  const by = 352; c.fillStyle = '#2a1252'; rrect(c, 124, by, 152, 20, 10); c.fill();
+  const flick = s.prog > 0 && !s.over && Math.floor(clock * 12) % 2 === 0;
+  c.fillStyle = s.done ? '#22d66b' : (flick ? '#ffef9a' : '#ffd23f'); rrect(c, 126, by + 2, Math.max(0, 148 * s.prog / 100), 16, 8); c.fill();
+  comic(c, Math.floor(s.prog) + '%', 200, by + 34, 18, '#ffd23f');
+  // waktu
+  const shown = s.done ? s.finishT : Math.max(0, Math.min(s.limit, t));
+  txt(c, 'WAKTU', 52, 160, 11, '#c9b8f0', 'center', 900); comic(c, shown.toFixed(2), 52, 190, 26, s.done ? '#22d66b' : (t > s.limit - 1.5 ? '#ff3b5c' : '#fff'));
+  txt(c, 'NORMA', 348, 160, 11, '#c9b8f0', 'center', 900); comic(c, '≤' + s.limit.toFixed(2), 348, 190, 20, '#ffd23f');
+  if (s.over && !s.done) comic(c, 'GAGAL KIRIM!', 200, 240, 34, '#ff3b5c', -0.1);
+  if (s.done) comic(c, 'TERKIRIM!', 200, 240, 38, '#22d66b', -0.1);
+}
+function drawKasir(c, x, y) {
+  c.fillStyle = '#ffcf9e'; c.beginPath(); c.arc(x, y, 18, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#ff3b5c'; c.fillRect(x - 20, y - 20, 40, 9); c.fillRect(x - 4, y - 14, 30, 5);
+  c.fillStyle = '#1a0630'; c.fillRect(x - 8, y - 2, 4, 4); c.fillRect(x + 5, y - 2, 4, 4);
+  c.strokeStyle = '#1a0630'; c.lineWidth = 2; c.beginPath(); c.arc(x, y + 5, 6, 0.2, Math.PI - 0.2); c.stroke();
+  c.fillStyle = '#3a9bff'; rrect(c, x - 22, y + 18, 44, 30, 8); c.fill(); c.fillStyle = '#fff'; c.fillRect(x - 10, y + 22, 20, 22);
+}
+function drawPesanan(c, G, C, t) {
+  const s = G.s; const me = C.me;
+  const rows = (C.live || []).map(r => Object.assign({}, r, { bar: Math.min(1, (r.id === me ? s.score : r.score) / G.norma) }));
+  const top = liveStrip(c, rows, r => (r.id === me ? s.score : r.score) + ' poin', me);
+  const left = Math.max(0, s.limit - Math.max(0, t));
+  c.fillStyle = 'rgba(255,255,255,.15)'; c.fillRect(10, top + 4, VW - 20, 8); c.fillStyle = left < 8 ? '#ff3b5c' : '#22d66b'; c.fillRect(10, top + 4, (VW - 20) * left / s.limit, 8);
+  comic(c, '⏱ ' + left.toFixed(1), 60, top + 30, 20, left < 8 ? '#ff3b5c' : '#fff');
+  comic(c, s.score + ' / ' + G.norma, 335, top + 30, 22, s.score >= G.norma ? '#5be36b' : '#ffd23f');
+  // gelembung pesanan
+  const by = top + 48; c.fillStyle = '#fff'; rrect(c, 40, by, 320, 82, 16); c.fill(); c.beginPath(); c.moveTo(190, by + 82); c.lineTo(200, by + 98); c.lineTo(212, by + 82); c.fill();
+  txt(c, 'PESANAN #' + (s.idx + 1), 200, by + 11, 11, '#7a5aa8', 'center', 900);
+  const icons = [drawSate, drawKerupuk, drawTeh];
+  for (let i = 0; i < 3; i++) { const x = 95 + i * 105; icons[i](c, x - 18, by + 48, 1.15); comic(c, '×' + s.order[i], x + 22, by + 48, 24, s.order[i] === 0 ? '#bbb' : WR.COLORS[[0, 2, 3][i]]); }
+  drawKasir(c, 200, by + 124);
+  c.fillStyle = '#9c5426'; c.fillRect(0, by + 170, VW, 14); c.fillStyle = '#7a3d1a'; c.fillRect(0, by + 184, VW, 6);
+  // nampan tumpukan
+  const ty = by + 196, th = VH - ty - 6;
+  for (let i = 0; i < 3; i++) {
+    const x = WR_COLX[i]; c.fillStyle = ['rgba(255,59,92,.25)', 'rgba(34,214,107,.25)', 'rgba(58,155,255,.25)'][i]; rrect(c, x - 58, ty, 116, th, 12); c.fill();
+    c.strokeStyle = WR.COLORS[[0, 2, 3][i]]; c.lineWidth = 3; c.stroke();
+    const n = s.stacks[i]; const step = Math.min(20, (th - 30) / Math.max(5, s.order[i]));
+    for (let k = 0; k < n; k++) icons[i](c, x, ty + th - 14 - k * step, i === 1 ? 1.4 : 1.2);
+    txt(c, n + '/' + s.order[i], x, ty + 12, 14, n === s.order[i] ? '#5be36b' : '#fff', 'center', 900);
+  }
+  if (s.over) comic(c, 'TUTUP WARUNG!', 200, 250, 34, '#ff3b5c', -0.08);
+}
+function drawGame(c) {
+  const C = app.client; if (!C || !C.game || !gv) return;
+  const G = C.game; const t = C.t();
+  // fase & bunyi aba-aba
+  const phase = t < -3 ? 'intro' : t < -1.5 ? 'norma' : t < -0.35 ? 'ready' : 'play';
+  if (phase !== gv.lastPhase) { if (phase === 'norma') Snd.play('ready'); if (phase === 'ready') Snd.play('ready'); if (phase === 'play' && t < 1) Snd.play('go'); gv.lastPhase = phase; }
+  padDemo(G, t);
+  if (G.id !== 'mangga') $('#pad').classList.toggle('dim', phase !== 'play' || (G.s && G.s.over));
+  if (phase === 'intro') { drawIntro(c, G, t); if (G.id === 'mangga') $('#pad').classList.add('dim'); return; }
+  if (G.id === 'mangga') drawMangga(c, G, C); else if (G.id === 'sinyal') drawSinyal(c, G, C, t); else drawPesanan(c, G, C, t);
+  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, G.id === 'mangga' && G.parts.length > 1 ? 'NORMA TIM' : 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, G.id === 'sinyal' ? 28 : 46, '#ffd23f', -0.05); }
+  else if (phase === 'ready') { const k = 1 + 0.1 * Math.sin(clock * 20); comic(c, 'READY...', 200, 210, 52 * k, '#ff5fc8', -0.08); }
+  else if (t < 0.6) { const k = Math.max(0, t + 0.35); c.globalAlpha = Math.max(0, 1 - k); comic(c, 'GO!!', 200, 210, 70 + k * 80, '#5be36b', -0.1); c.globalAlpha = 1; }
+}
+let lastTs = performance.now();
+function frame(ts) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, Math.max(0, (ts - lastTs) / 1000)); lastTs = ts; clock += dt;
+  const C = app.client; if (C) C.update();
+  stepFx(dt);
+  ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0); drawBg(ctx, view.w, view.h);
+  const sx = fx.shake ? (Math.random() - 0.5) * fx.shake : 0, sy = fx.shake ? (Math.random() - 0.5) * fx.shake : 0;
+  ctx.setTransform(view.dpr * view.s, 0, 0, view.dpr * view.s, view.dpr * (view.ox + sx), view.dpr * (view.oy + sy));
+  if (app.screen === 'game') { try { drawGame(ctx); } catch (e) { console.error(e); } }
+  drawFx(ctx);
+  if (fx.flash > 0) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = Math.min(0.8, fx.flash * 0.7); ctx.fillStyle = fx.flashC; ctx.fillRect(0, 0, cv.width, cv.height); ctx.globalAlpha = 1; }
+}
+requestAnimationFrame(frame);
+
+// judul kembali normal saat bukan di game
+new MutationObserver(() => { if (app.screen !== 'game') $('#ttl').textContent = 'WARUNG RUSUH'; }).observe(ov, { childList: true });
+
+// ---------------- Mulai ----------------
+const q = new URLSearchParams(location.search).get('room');
+if (q && WR.validCode(WR.normCode(q))) screenJoin(WR.normCode(q)); else screenMenu();
+window.__WR_UI = { press, startSolo, screenMenu, PeerNet, loadPeer, view };
+})();
+</script>
+</body>
+</html>
