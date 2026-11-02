@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vinson's Apps</title>
+<style>
+  :root { --bg:#f7f7f8; --card:#fff; --text:#1d1d1f; --muted:#6e6e73; --accent:#2f6fed; --border:#e3e3e8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111214; --card:#1b1c1f; --text:#f2f2f4; --muted:#9a9aa1; --accent:#6b9bff; --border:#2c2d31; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  a.app { display:block; padding: 14px 16px; background: var(--card); border:1px solid var(--border); border-radius: 12px; color: var(--text); text-decoration: none; }
+  a.app:hover { border-color: var(--accent); }
+  a.app strong { display:block; }
+  a.app span { color: var(--muted); font-size: .92rem; }
+  .empty { color: var(--muted); font-style: italic; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vinson's Apps</h1>
+  <p class="sub">Small everyday tools, built by Gordon.</p>
+  <ul id="apps">
+    <!-- APPS:START -->
+    <li class="empty">No apps yet.</li>
+    <!-- APPS:END -->
+  </ul>
+</main>
+</body>
+</html>
