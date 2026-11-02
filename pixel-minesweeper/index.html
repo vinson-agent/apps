@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Pixel Minesweeper</title>
+<style>
+  :root { --z: 2; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; min-height: 100vh; padding: 16px; background: #1b1b2f; color: #eee;
+         font-family: ui-monospace, Consolas, monospace; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  h1 { margin: 0; font-size: 18px; letter-spacing: 2px; }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  select, button.t { background: #2d2d4a; color: #eee; border: 2px solid #55557a; padding: 6px 10px; font: inherit; cursor: pointer; }
+  button.t.on { background: #c0392b; border-color: #ff8a7a; }
+  .panel { background: #c0c0c0; padding: 6px; border: 3px solid; border-color: #fff #808080 #808080 #fff; max-width: 100%; overflow: auto; }
+  .head { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; margin-bottom: 6px;
+          border: 2px solid; border-color: #808080 #fff #fff #808080; }
+  .led { background: #000; color: #f00; font-weight: bold; font-size: 22px; min-width: 56px; text-align: center; padding: 2px 4px; }
+  #face { border: 0; padding: 0; background-color: transparent; cursor: pointer; image-rendering: pixelated; }
+  #board { display: grid; border: 3px solid; border-color: #808080 #fff #fff #808080; touch-action: manipulation; user-select: none; width: max-content; }
+  .c { image-rendering: pixelated; background-repeat: no-repeat; }
+  #msg { min-height: 20px; font-weight: bold; }
+  small { opacity: .7; text-align: center; max-width: 420px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<h1>PIXEL MINESWEEPER</h1>
+<div class="bar">
+  <select id="level">
+    <option value="9,9,10">Pemula 9x9</option>
+    <option value="16,16,40">Menengah 16x16</option>
+    <option value="30,16,99">Ahli 30x16</option>
+  </select>
+  <button class="t" id="flagmode">🚩 Mode bendera: OFF</button>
+</div>
+<div class="panel">
+  <div class="head">
+    <div class="led" id="mines">010</div>
+    <button id="face" title="Mulai ulang"></button>
+    <div class="led" id="time">000</div>
+  </div>
+  <div id="board"></div>
+</div>
+<div id="msg"></div>
+<small>Klik kiri: buka. Klik kanan / tahan lama (layar sentuh): bendera → ? → kosong. Klik angka yang benderanya sudah pas: buka tetangganya. Klik pertama selalu aman.</small>
+<script>
+const SHEET = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAACGklEQVR42u2aYZKDMAiFObpH60V6luxuM81igPhAXaUbxh+OTfF9QiJJpALb42WL07z+ve0pAPCA7e8AQDXVAgDd9UI/pvr36rkA4Ft9YoCq3gVAzC4GaOpxAK67Y0gTARUmXx+4RQqFRyGy218DUDVlHUYDAPeKAK0tUwTItnwpZPl3AwRqTBeA17+3fQQgQHsiwJLcyJsSd2s/Ae4JUEtG8Aa0UDuQ9ryoxgHqDSCA5h8B4Lolg2zPdUsGC6A9oVMioMIg7UEAYiE+EQBPIZ5F2xF+6z4XQFV/SAT445cMR3ZicFSJ9YFgJ5YMVie2BqJrRqH5IpsA/w4gfTk95wOzD0wAdkkUH0ApsbQDKM7IWtiy/A8WREwA/AmputHyGwCQSxW+CJwHMFju3AUwjoYFgKfQQP0xKRQDsKJhzLB09UemUGKArhtgExpfCrkAdqXQfJFNgDkfmPMBv7k/twmEmK+LjI/wntpegPGrXgqtNgDoVoGk//LeqHRv8jUAsm/QzjkA2QCkRYAzdP7bT9bXKoN95VUE1A9blL1oIZTW51YKNaHcPweT+8rl2R/d0+xTqP5/POFY5YloP+4DHJjEAiMHaOrVkxHA5oypA+jabwC8/lA09bsACDAOgBgHsCClfwlgZVEOgA6jXTRTCJl0F0MBkkKyryMp9Ov8eTVAoBNDKfQJw+gnvMhylxI3KebkPDhZOe0F+AK8EbZDZ89PjAAAAABJRU5ErkJggg==";
+const IDX = { hidden:0, empty:1, flag:2, q:3, num:4, mine:12, boom:13, wrong:14, face:15 };
+let Z = 2, W, H, M, mines, adj, st, placed, over, flags, revealedCount, timer, secs, flagMode = false, cells = [];
+const $ = id => document.getElementById(id);
+const board = $('board'), face = $('face');
+
+function spritePos(i, el) {
+  const x = (i % 4) * 16 * Z, y = Math.floor(i / 4) * 16 * Z;
+  el.style.backgroundPosition = `-${x}px -${y}px`;
+}
+function styleSprite(el) {
+  el.style.backgroundImage = `url(${SHEET})`;
+  el.style.backgroundSize = `${64 * Z}px ${64 * Z}px`;
+  el.style.width = el.style.height = `${16 * Z}px`;
+}
+function pickZoom() {
+  const avail = Math.min(window.innerWidth - 56, 960);
+  Z = Math.max(1, Math.min(3, Math.floor(avail / (W * 16))));
+  if (Z < 2 && window.innerWidth > 700) Z = 2;
+}
+const nbrs = i => {
+  const x = i % W, y = (i / W) | 0, r = [];
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue;
+    const nx = x + dx, ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < W && ny < H) r.push(ny * W + nx);
+  }
+  return r;
+};
+
+function newGame() {
+  [W, H, M] = $('level').value.split(',').map(Number);
+  mines = new Array(W * H).fill(false); adj = new Array(W * H).fill(0); st = new Array(W * H).fill(0);
+  placed = false; over = false; flags = 0; revealedCount = 0; secs = 0;
+  clearInterval(timer); timer = null; $('msg').textContent = '';
+  pickZoom();
+  styleSprite(face); spritePos(IDX.face, face);
+  board.style.gridTemplateColumns = `repeat(${W}, ${16 * Z}px)`;
+  board.innerHTML = ''; cells = [];
+  for (let i = 0; i < W * H; i++) {
+    const d = document.createElement('div'); d.className = 'c'; d.dataset.i = i;
+    styleSprite(d); spritePos(IDX.hidden, d); board.appendChild(d); cells.push(d);
+  }
+  updateHud();
+}
+function updateHud() {
+  $('mines').textContent = String(Math.max(-99, M - flags)).padStart(3, '0');
+  $('time').textContent = String(Math.min(999, secs)).padStart(3, '0');
+}
+function place(first) {
+  const banned = new Set([first, ...nbrs(first)]);
+  const pool = [];
+  for (let i = 0; i < W * H; i++) if (!banned.has(i)) pool.push(i);
+  for (let k = 0; k < M; k++) { const j = k + Math.floor(Math.random() * (pool.length - k)); [pool[k], pool[j]] = [pool[j], pool[k]]; mines[pool[k]] = true; }
+  for (let i = 0; i < W * H; i++) adj[i] = nbrs(i).filter(n => mines[n]).length;
+  placed = true;
+  timer = setInterval(() => { secs++; updateHud(); }, 1000);
+}
+function draw(i, boom) {
+  let s;
+  if (st[i] === 1) s = mines[i] ? (boom ? IDX.boom : IDX.mine) : (adj[i] ? IDX.num + adj[i] - 1 : IDX.empty);
+  else if (st[i] === 2) s = IDX.flag;
+  else if (st[i] === 3) s = IDX.q;
+  else s = IDX.hidden;
+  spritePos(s, cells[i]);
+}
+function reveal(start) {
+  const stack = [start];
+  while (stack.length) {
+    const i = stack.pop();
+    if (st[i] === 1 || st[i] === 2) continue;
+    st[i] = 1; revealedCount++; draw(i);
+    if (adj[i] === 0 && !mines[i]) stack.push(...nbrs(i));
+  }
+}
+function lose(hit) {
+  over = true; clearInterval(timer);
+  for (let i = 0; i < W * H; i++) {
+    if (mines[i] && st[i] !== 2) { st[i] = 1; draw(i, i === hit); }
+    else if (!mines[i] && st[i] === 2) spritePos(IDX.wrong, cells[i]);
+  }
+  $('msg').textContent = '💥 Kena ranjau! Klik smiley untuk coba lagi.';
+}
+function win() {
+  over = true; clearInterval(timer);
+  for (let i = 0; i < W * H; i++) if (mines[i]) { st[i] = 2; draw(i); }
+  flags = M; updateHud();
+  const key = 'pms-best-' + $('level').value;
+  const best = +localStorage.getItem(key) || Infinity;
+  let txt = `🎉 Menang dalam ${secs} detik!`;
+  if (secs < best) { localStorage.setItem(key, secs); txt += ' Rekor baru!'; }
+  $('msg').textContent = txt; showBest();
+}
+function showBest() {
+  const b = localStorage.getItem('pms-best-' + $('level').value);
+  if (!$('msg').textContent) $('msg').textContent = b ? `Rekor terbaik: ${b} detik` : '';
+}
+function open(i) {
+  if (over || st[i] === 2) return;
+  if (!placed) place(i);
+  if (st[i] === 1) { // chording
+    if (!adj[i]) return;
+    const ns = nbrs(i);
+    if (ns.filter(n => st[n] === 2).length !== adj[i]) return;
+    for (const n of ns) if (st[n] !== 2 && st[n] !== 1) { if (mines[n]) { st[n] = 1; return lose(n); } reveal(n); }
+  } else {
+    if (mines[i]) { st[i] = 1; return lose(i); }
+    reveal(i);
+  }
+  if (revealedCount === W * H - M) win();
+}
+function mark(i) {
+  if (over || st[i] === 1) return;
+  if (st[i] === 0) { st[i] = 2; flags++; }
+  else if (st[i] === 2) { st[i] = 3; flags--; }
+  else st[i] = 0;
+  draw(i); updateHud();
+}
+
+let press = null, longPressed = false, ptype = 'mouse';
+board.addEventListener('pointerdown', e => {
+  const t = e.target.closest('.c'); if (!t) return;
+  ptype = e.pointerType; longPressed = false;
+  if (e.pointerType !== 'mouse') {
+    press = setTimeout(() => { longPressed = true; mark(+t.dataset.i); if (navigator.vibrate) navigator.vibrate(30); }, 380);
+  }
+});
+board.addEventListener('pointerup', e => {
+  clearTimeout(press);
+  const t = e.target.closest('.c'); if (!t || longPressed) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const i = +t.dataset.i;
+  if (flagMode && st[i] !== 1) mark(i); else open(i);
+});
+board.addEventListener('pointercancel', () => clearTimeout(press));
+board.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' && e.movementX * e.movementX + e.movementY * e.movementY > 100) clearTimeout(press); });
+board.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (ptype !== 'mouse') return;
+  const t = e.target.closest('.c'); if (t) mark(+t.dataset.i);
+});
+face.addEventListener('click', newGame);
+$('level').addEventListener('change', () => { newGame(); showBest(); });
+$('flagmode').addEventListener('click', e => {
+  flagMode = !flagMode; e.target.classList.toggle('on', flagMode);
+  e.target.textContent = '🚩 Mode bendera: ' + (flagMode ? 'ON' : 'OFF');
+});
+window.addEventListener('resize', () => { const z = Z; pickZoom(); if (z !== Z && !placed) newGame(); });
+newGame(); showBest();
+</script>
+</body>
+</html>
