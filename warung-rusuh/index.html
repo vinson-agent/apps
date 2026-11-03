@@ -1145,7 +1145,7 @@ const cv = $('#cv'); const ctx = cv.getContext('2d');
 const VW = 400, VH = 440;
 // Tangga custom art (original character/asset illustrations, generated for this game only)
 const TG_IMG = {};
-['runner_idle', 'runner_climb', 'runner_climb_side', 'runner_wrong', 'stairway_bg',
+['runner_idle', 'runner_climb', 'runner_wrong', 'stairway_bg',
   'step_merah', 'step_hijau', 'step_biru', 'step_merah_dim', 'step_hijau_dim', 'step_biru_dim'
 ].forEach(n => { const im = new Image(); im.src = 'assets/tangga/' + n + '.png'; TG_IMG[n] = im; });
 function tgReady(n) { const im = TG_IMG[n]; return im && im.complete && im.naturalWidth > 0; }
