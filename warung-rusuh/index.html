@@ -1560,7 +1560,7 @@ function drawTangga(c, G, C, t) {
   const BEHIND = 2, AHEAD_SP = 50, BEHIND_SP = 38;
   for (let k = BEHIND; k >= 1; k--) {
     const stepIdx = s.idx - k; if (stepIdx < 0) continue;
-    const color = s.steps[stepIdx]; const h = Math.max(28, 52 - k * 8); const x = px - k * BEHIND_SP;
+    const color = s.steps[stepIdx]; const h = Math.max(40, 66 - k * 10); const x = px - k * BEHIND_SP;
     const img = 'step_' + NAMES[color] + '_dim';
     if (!tgDraw(c, img, x, queueY, h)) { c.fillStyle = WR.COLORS[[0, 2, 3][color]]; c.globalAlpha = 0.4; rrect(c, x - h * 0.32, queueY - h / 2, h * 0.64, h, 8); c.fill(); c.globalAlpha = 1; }
   }
