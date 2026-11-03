@@ -1380,8 +1380,8 @@ function drawIntro(c, G, t) {
   else if (G.id === 'sinyal') { drawPhoneIcon(c, 200, y, 2.4); for (let i = 0; i < 3; i++) if (Math.sin(clock * 30 + i * 2) > 0) comic(c, 'ASD'[i], 150 + i * 50, y + 38, 18, WR.COLORS[[0, 2, 3][i]]); }
   else if (G.id === 'pesanan') { drawSate(c, 110, y, 1.5); drawKerupuk(c, 200, y, 1.6); drawTeh(c, 290, y, 1.5); ['A', 'S', 'D'].forEach((l, i) => comic(c, l, WR_COLX[i] + (i === 0 ? 40 : i === 2 ? -40 : 0), y + 34, 18, WR.COLORS[[0, 2, 3][i]])); }
   else if (G.id === 'pembeli') {
-    drawChibiFace(c, 150, y, 2.2, '#ff3b5c', '#ffd9a8', 'happy'); txt(c, 'DIA = MERAH', 150, y + 40, 14, '#5be36b', 'center', 900);
-    drawChibiFace(c, 250, y, 2.2, '#3a9bff', '#c89bff', 'happy'); txt(c, 'BUKAN = HIJAU', 250, y + 40, 14, '#ff8a2b', 'center', 900);
+    drawChibiFace(c, 150, y - 10, 1.8, '#ff3b5c', '#ffd9a8', 'happy'); txt(c, 'DIA = MERAH', 150, y + 28, 13, '#5be36b', 'center', 900);
+    drawChibiFace(c, 250, y - 10, 1.8, '#3a9bff', '#c89bff', 'happy'); txt(c, 'BUKAN = HIJAU', 250, y + 28, 13, '#ff8a2b', 'center', 900);
   } else if (G.id === 'tangga') {
     ['A', 'S', 'D'].forEach((l, i) => comic(c, l, 120 + i * 80, y + 10, 20, WR.COLORS[[0, 2, 3][i]]));
     drawCrate(c, 120, y - 36, 1.1); drawBasket(c, 280, y - 36, 1.1);
@@ -1527,10 +1527,10 @@ function drawPembeli(c, G, C, t) {
   rows.forEach(r => { r.bar = Math.max(0, Math.min(1, (r.score || 0) / Math.max(1, G.norma))); });
   const top = liveStrip(c, rows, r => (r.score || 0) + ' poin', me);
   // contoh pelanggan yang dicari (tetap, di kartu kecil atas)
-  c.fillStyle = 'rgba(10,4,24,.72)'; rrect(c, 110, top + 8, 180, 44, 12); c.fill(); c.strokeStyle = '#ffd23f'; c.lineWidth = 2; c.stroke();
-  drawChibiFace(c, 136, top + 30, 1.0, '#ff3b5c', '#ffd9a8', 'happy');
-  txt(c, 'CARI DIA!', 210, top + 22, 12, '#ffd23f', 'left', 900); txt(c, 'MERAH = ya, HIJAU = bukan', 210, top + 38, 10.5, '#c9b8f0', 'left', 700);
-  comic(c, (s.score || 0) + ' / ' + G.norma, 330, top + 30, 20, (s.score || 0) >= G.norma ? '#5be36b' : '#ffd23f');
+  c.fillStyle = 'rgba(10,4,24,.72)'; rrect(c, 20, top + 6, 360, 48, 12); c.fill(); c.strokeStyle = '#ffd23f'; c.lineWidth = 2; c.stroke();
+  drawChibiFace(c, 52, top + 30, 1.0, '#ff3b5c', '#ffd9a8', 'happy');
+  txt(c, 'CARI DIA!', 88, top + 20, 12, '#ffd23f', 'left', 900); txt(c, 'MERAH = ya · HIJAU = bukan', 88, top + 38, 10.5, '#c9b8f0', 'left', 700);
+  comic(c, (s.score || 0) + ' / ' + G.norma, 335, top + 30, 18, (s.score || 0) >= G.norma ? '#5be36b' : '#ffd23f');
   // panggung: pelanggan yang lewat sekarang
   const sl = s.over ? null : s.slots.find(x => t >= x.t0 && t < x.t0 + x.dur);
   const cy = 250;
@@ -1583,7 +1583,12 @@ function drawGame(c) {
   if (phase === 'intro') { drawIntro(c, G, t); return; }
   const DRAW = { mangga: drawMangga, sinyal: drawSinyal, pesanan: drawPesanan, pembeli: drawPembeli, tangga: drawTangga };
   (DRAW[G.id] || drawPesanan)(c, G, C, t);
-  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, (G.id === 'sinyal' || G.id === 'tangga') ? 23 : 40, '#ffd23f', -0.05); }
+  if (phase === 'norma') {
+    const by = 150, bh = 140;
+    c.fillStyle = 'rgba(10,4,24,.88)'; rrect(c, 40, by, VW - 80, bh, 18); c.fill(); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; c.stroke();
+    txt(c, 'NORMA', 200, by + 26, 15, '#c9b8f0', 'center', 900);
+    comic(c, WR.normaText(G.id, G.norma), 200, by + 76, (G.id === 'sinyal' || G.id === 'tangga') ? 20 : 34, '#ffd23f', -0.05);
+  }
   else if (phase === 'ready') { const k = 1 + 0.1 * Math.sin(clock * 20); comic(c, 'READY...', 200, 210, 52 * k, '#ff5fc8', -0.08); }
   else if (t < 0.6) { const k = Math.max(0, t + 0.35); c.globalAlpha = Math.max(0, 1 - k); comic(c, 'GO!!', 200, 210, 70 + k * 80, '#5be36b', -0.1); c.globalAlpha = 1; }
 }
