@@ -151,9 +151,9 @@ WR.GAMES = {
   mangga: { id: 'mangga', title: 'Mangga atau Petasan', kind: 'turn', tag: 'Petik mangganya, jangan petasannya!',
     how: ['Penanda berputar keliling piring.', 'Tekan tombol APA SAJA untuk berhenti.', 'Mangga = +1 poin. Petasan = DUAR! (strike)', 'Bergiliran. 3 strike bersama = selesai.'],
     sub: 'Bergiliran · tekan pas di mangga' },
-  sinyal: { id: 'sinyal', title: 'Sinyal Lemot', kind: 'race', duration: 6, tag: 'Fotonya harus terkirim SEKARANG!!',
-    how: ['Sinyal lemot, foto nyangkut!', 'Pencet A / S / D secepat-cepatnya!', 'Berhenti sebentar = progres turun.', 'Tembus 100% sebelum waktu habis.'],
-    sub: 'Balapan · pencet secepatnya' },
+  sinyal: { id: 'sinyal', title: 'Sinyal Lemot', kind: 'race', duration: 10, tag: 'Kirim foto sebanyak-banyaknya!',
+    how: ['Pencet A / S / D secepat-cepatnya!', 'Tiap 100% = 1 foto terkirim, bar ke 0.', 'Berhenti sebentar = progres turun.', 'Kirim sebanyak-banyaknya dalam 10 detik!'],
+    sub: 'Balapan 10 dtk · kirim foto terbanyak' },
   pesanan: { id: 'pesanan', title: 'Pesanan Kilat', kind: 'race', duration: 40, tag: 'Pembeli antre, layani cepat!',
     how: ['Lihat pesanan di atas kasir.', 'MERAH = sate, HIJAU = kerupuk, BIRU = es teh.', 'Tekan sesuai jumlah. Kelebihan = HANGUS!', 'Pesanan makin banyak. Kejar poinnya!'],
     sub: 'Balapan · hitung & susun' },
@@ -164,31 +164,43 @@ WR.selTitle = function (s) { return s === 'maraton' ? 'Maraton (3 game)' : (WR.G
 WR.normaFor = function (id, round) {
   const k = 1 + 0.1 * (round || 0);
   if (id === 'mangga') return Math.min(22, Math.ceil(14 * k - 1e-9));
-  if (id === 'sinyal') return Math.round(600 / k) / 100;
+  if (id === 'sinyal') return Math.ceil(SINYAL.NORMA * k - 1e-9);
   return Math.ceil(15 * k - 1e-9);
 };
-WR.normaText = function (id, n) { return id === 'sinyal' ? '100% dalam ' + n.toFixed(2) + ' dtk' : n + ' poin'; };
+WR.normaText = function (id, n) { return id === 'sinyal' ? n + ' foto dalam ' + WR.GAMES.sinyal.duration + ' dtk' : n + ' poin'; };
 WR.RANKS = [[0, 'Kerupuk'], [15, 'Gorengan'], [30, 'Sate'], [45, 'Bakso'], [60, 'Nasi Goreng'], [80, 'Raja Warung'], [100, 'Sultan Pasar Malam']];
 WR.rankFor = function (total) { let r = WR.RANKS[0][1]; for (const [min, name] of WR.RANKS) if (total >= min) r = name; return r; };
 
-// ---------- 7.2 Sinyal Lemot ----------
+// ---------- 7.2 Sinyal Lemot: balapan 10 dtk, tiap 100% = 1 foto terkirim ----------
 const SINYAL = {
-  PER_PRESS: 2.5, DECAY: 12, IDLE: 0.2,
-  create(o) { return { limit: (o && o.limit) || 6, t: 0, prog: 0, last: -9, presses: 0, done: false, finishT: null, over: false }; },
+  PER_PRESS: 6.67,  // % per tekan (≈15 tekan per foto)
+  DECAY: 30,        // % per detik yang hilang saat berhenti menekan
+  IDLE: 0.25,       // detik tanpa tekan sebelum progres mulai turun (mash terus = tidak pernah turun)
+  NORMA: 3,         // norma putaran 0 (foto), naik 10% per putaran Maraton
+  MAX_PHOTOS: 99,   // batas sanitasi laporan
+  create(o) { return { limit: (o && o.limit) || WR.GAMES.sinyal.duration, t: 0, prog: 0, last: -9, presses: 0, photos: 0, lastPhotoT: null, over: false }; },
   update(s, t) {
     if (s.over) return;
-    const dt = Math.max(0, t - s.t); s.t = Math.max(s.t, t);
-    if (t - s.last > SINYAL.IDLE) s.prog = Math.max(0, s.prog - SINYAL.DECAY * dt);
-    if (s.t >= s.limit) { s.t = s.limit; s.over = true; }
+    const tt = Math.min(t, s.limit);
+    const from = Math.max(s.t, s.last + SINYAL.IDLE); // hanya waktu diam setelah IDLE yang mengurangi progres
+    if (tt > from) s.prog = Math.max(0, s.prog - SINYAL.DECAY * (tt - from));
+    s.t = Math.max(s.t, tt);
+    if (t >= s.limit) { s.t = s.limit; s.over = true; }
   },
   input(s, btn, t) {
     if (s.over || t < 0) return null;
     SINYAL.update(s, t); if (s.over) return null;
-    s.prog = Math.min(100, s.prog + SINYAL.PER_PRESS); s.presses++; s.last = t;
-    if (s.prog >= 100) { s.done = true; s.finishT = Math.round(t * 100) / 100; s.over = true; return { type: 'done' }; }
+    s.prog += SINYAL.PER_PRESS; s.presses++; s.last = t;
+    if (s.prog >= 100 - 1e-9) { s.photos++; s.prog = 0; s.lastPhotoT = Math.round(t * 100) / 100; return { type: 'photo', photos: s.photos }; }
     return { type: 'tick', prog: s.prog };
   },
-  report(s) { return { score: 0, prog: Math.round(s.prog * 10) / 10, finishT: s.finishT, over: s.over }; },
+  report(s) { return { score: s.photos, prog: Math.round(s.prog * 10) / 10, photos: s.photos, lastPhotoT: s.lastPhotoT, finishT: null, over: s.over }; },
+  // urutan: foto terbanyak, lalu progres foto berjalan tertinggi, lalu foto terakhir paling awal
+  sortKey(r) {
+    const ph = Math.max(0, Math.floor(r.photos || 0)), pr = Math.max(0, Math.min(999, Math.round((r.prog || 0) * 10)));
+    const lt = ph > 0 && r.lastPhotoT != null ? Math.max(0, Math.min(9999, Math.round(r.lastPhotoT * 100))) : 9999;
+    return -(ph * 1e8 + pr * 1e4) + lt;
+  },
 };
 // ---------- 7.3 Pesanan Kilat ----------
 const PESANAN = {
@@ -242,15 +254,14 @@ WR.mods = { sinyal: SINYAL, pesanan: PESANAN, mangga: MANGGA };
 
 WR.racePoints = function (id, r, norma) {
   if (id === 'sinyal') {
-    const done = r.finishT != null;
-    return { points: done ? 10 + Math.max(0, Math.round((6 - r.finishT) * 5)) : Math.floor(r.prog / 10),
-      pass: done && r.finishT <= norma + 1e-9, detail: done ? r.finishT.toFixed(2) + ' dtk' : Math.floor(r.prog) + '%',
-      sortKey: done ? r.finishT : 1000 - r.prog };
+    const ph = Math.max(0, Math.floor(r.photos || 0)), pr = Math.max(0, r.prog || 0);
+    return { points: ph * 5 + Math.floor(pr / 20), pass: ph >= norma, photos: ph, lastPhotoT: r.lastPhotoT == null ? null : r.lastPhotoT,
+      detail: ph + ' foto' + (pr >= 1 ? ' · ' + Math.floor(pr) + '%' : ''), sortKey: SINYAL.sortKey(r) };
   }
   return { points: r.score, pass: r.score >= norma, detail: (r.prog || 0) + ' pesanan', sortKey: -r.score };
 };
 WR.isBonus = function (id, row, norma) {
-  if (id === 'sinyal') return row.finishT != null && row.finishT <= norma / 1.5 + 1e-9;
+  if (id === 'sinyal') return (row.photos || 0) >= norma * 1.5 - 1e-9;
   if (id === 'mangga') return row.team >= norma * 1.5;
   return row.points >= norma * 1.5;
 };
@@ -427,8 +438,13 @@ class RoomHost {
     const G = this.game; if (!G || G.ended || G.kind !== 'race' || m.gi !== G.gi || !G.parts.includes(p.id)) return;
     const num = (v, lo, hi) => { v = Number(v); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo; };
     const prev = G.reports[p.id]; if (prev && prev.over) return;
-    G.reports[p.id] = { score: Math.floor(num(m.score, 0, 9999)), prog: G.id === 'sinyal' ? num(m.prog, 0, 100) : Math.floor(num(m.prog, 0, 9999)),
-      finishT: m.finishT == null ? null : num(m.finishT, 0, 60), over: !!m.over };
+    if (G.id === 'sinyal') {
+      const photos = Math.floor(num(m.photos, 0, SINYAL.MAX_PHOTOS));
+      G.reports[p.id] = { score: photos, prog: Math.round(num(m.prog, 0, 99.9) * 10) / 10, photos,
+        lastPhotoT: photos > 0 && m.lastPhotoT != null ? Math.round(num(m.lastPhotoT, 0, WR.GAMES.sinyal.duration) * 100) / 100 : null, finishT: null, over: !!m.over };
+    } else {
+      G.reports[p.id] = { score: Math.floor(num(m.score, 0, 9999)), prog: Math.floor(num(m.prog, 0, 9999)), finishT: null, over: !!m.over };
+    }
     if (this._allOver()) G.timers.push(this.T.setTimeout(() => this._finish(), 400));
   }
   _allOver() { const G = this.game; const present = G.parts.filter(id => this._player(id)); return present.length > 0 && present.every(id => G.reports[id] && G.reports[id].over); }
@@ -438,8 +454,9 @@ class RoomHost {
     const rows = G.parts.map(pid => {
       const nm = G.names[pid]; let r;
       if (G.kind === 'race') {
-        const rep = G.reports[pid] || { score: 0, prog: 0, finishT: null, over: false };
+        const rep = G.reports[pid] || { score: 0, prog: 0, photos: 0, lastPhotoT: null, finishT: null, over: false };
         r = WR.racePoints(G.id, rep, G.norma); r.prog = rep.prog; r.score = rep.score; r.finishT = rep.finishT; r.over = rep.over;
+        if (G.id === 'sinyal') { r.photos = rep.photos || 0; r.lastPhotoT = rep.lastPhotoT == null ? null : rep.lastPhotoT; }
       } else {
         const per = G.m.per[pid] || { m: 0, p: 0 }; const pts = MANGGA.points(G.m, pid, G.parts.length);
         r = { points: pts, pass: G.m.team >= G.norma, team: G.m.team, m: per.m, p: per.p, detail: per.m + ' mangga · ' + per.p + ' petasan', sortKey: -pts };
@@ -554,7 +571,7 @@ class RoomClient {
     const id = m.game; if (!WR.GAMES[id]) return;
     const G = { gi: m.gi, id, kind: WR.GAMES[id].kind, seed: m.seed, norma: m.norma, round: m.round, startAt: m.startAt, parts: m.parts, playing: m.parts.includes(this.me),
       mara: m.mara, lastSent: '', ended: false, finalSent: false, board: null, strikes: 0, team: 0, harvest: 1, per: {} };
-    if (G.kind === 'race') G.s = WR.mods[id].create({ seed: m.seed, norma: m.norma, limit: id === 'sinyal' ? m.norma : WR.GAMES[id].duration });
+    if (G.kind === 'race') G.s = WR.mods[id].create({ seed: m.seed, norma: m.norma, limit: WR.GAMES[id].duration });
     this.game = G; this.turn = null; this.live = null; this.res = null;
     this.ev.emit('start', G);
   }
@@ -652,6 +669,7 @@ const Snd = {
       case 'turn': this.tone(988, 0.08, 'triangle', 0.2); this.tone(1318, 0.12, 'triangle', 0.2, null, 0.1); break;
       case 'pass': [523, 659, 784, 1046, 784, 1046].forEach((f, i) => this.tone(f, 0.12, 'square', 0.12, null, i * 0.1)); break;
       case 'fail': [392, 330, 262, 196].forEach((f, i) => this.tone(f, 0.18, 'sawtooth', 0.1, null, i * 0.15)); break;
+      case 'photo': this.noise(0.06, 0.4); this.tone(1046, 0.06, 'square', 0.12, null, 0.03); this.tone(1568, 0.12, 'triangle', 0.16, null, 0.08); break;
       case 'end': this.tone(1500, 0.12, 'sine', 0.2, 1900); this.tone(1500, 0.3, 'sine', 0.2, 2200, 0.15); break;
       case 'join': this.tone(660, 0.07, 'triangle', 0.14); this.tone(990, 0.1, 'triangle', 0.14, null, 0.07); break;
     }
@@ -662,10 +680,13 @@ $('#mute').addEventListener('click', () => { setMute(!Snd.muted); if (!Snd.muted
 setMute(Snd.muted);
 
 // ---------------- Skor tinggi ----------------
-const HS = store.get('wr_hs', {});
+const HS = (() => { const h = store.get('wr_hs', {}); return h && typeof h === 'object' && !Array.isArray(h) ? h : {}; })();
+// v1.1: rekor Sinyal = foto terbanyak dalam 10 dtk (key baru). Rekor lama (waktu tercepat, key 'sinyal') dibuang.
+if ('sinyal' in HS) { delete HS.sinyal; store.set('wr_hs', HS); }
+const validPhotos = v => Number.isInteger(v) && v > 0 && v <= 99;
 function saveHS() { store.set('wr_hs', HS); }
 function hsText(id) {
-  if (id === 'sinyal') return HS.sinyal ? 'Rekor: ' + HS.sinyal.toFixed(2) + ' dtk' : 'Belum ada rekor';
+  if (id === 'sinyal') return validPhotos(HS.sinyalFoto) ? 'Rekor: ' + HS.sinyalFoto + ' foto' : 'Belum ada rekor';
   if (id === 'maraton') return HS.maraton ? 'Rekor arcade: ' + HS.maraton + (HS.pangkat ? ' · ' + HS.pangkat : '') : 'Belum ada rekor';
   return HS[id] ? 'Rekor: ' + HS[id] + ' poin' : 'Belum ada rekor';
 }
@@ -912,7 +933,7 @@ function makeClient(name) {
 }
 function recordHS(m) {
   const C = app.client; const r = m.rows.find(x => x.id === C.me); if (!r) return;
-  if (m.game === 'sinyal') { if (r.finishT != null && (!HS.sinyal || r.finishT < HS.sinyal)) HS.sinyal = r.finishT; }
+  if (m.game === 'sinyal') { const ph = Math.floor(r.photos || 0); if (validPhotos(ph) && (!validPhotos(HS.sinyalFoto) || ph > HS.sinyalFoto)) HS.sinyalFoto = ph; }
   else if (!HS[m.game] || r.points > HS[m.game]) HS[m.game] = r.points;
   if (m.final && m.mara && m.mara.arcade) { const t = m.mara.totals.find(x => x.id === C.me); if (t && (!HS.maraton || t.total > HS.maraton)) { HS.maraton = t.total; HS.pangkat = t.rank; } }
   saveHS();
@@ -1083,7 +1104,7 @@ const PADLBL = { mangga: ['TEKAN', 'TEKAN', 'TEKAN'], sinyal: ['PENCET', 'PENCET
 let gv = null; // status tampilan game lokal
 function enterGame(G) {
   hideOv('game'); setIngame(true);
-  gv = { G, lastPhase: '', tickAt: 0, beeped: {}, lastProgSound: 0 };
+  gv = { G, lastPhase: '', tickAt: 0, beeped: {}, lastProgSound: 0, photoAt: -9, endSnd: false };
   fx.parts = []; fx.pops = [];
   const L = PADLBL[G.id]; for (let i = 0; i < 3; i++) $('#pl' + i).textContent = L[i];
   $('#ttl').textContent = WR.GAMES[G.id].title;
@@ -1104,7 +1125,7 @@ function press(btn) {
   if (btn >= 0 && btn <= 2) { const el = document.querySelector('.pb[data-b="' + btn + '"]'); if (el) { el.classList.add('dn'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('dn'), 90); } }
   const G = C.game; const r = C.input(btn); if (!r) return;
   if (G.id === 'sinyal') {
-    if (r.type === 'done') { Snd.play('end'); fx.flash = 0.8; fx.flashC = '#9cffc4'; burst(200, 230, ['#22d66b', '#ffd23f', '#3a9bff', '#fff'], 40, 220); pop('TERKIRIM!', 200, 220, '#22d66b', 40); }
+    if (r.type === 'photo') { Snd.play('photo'); gv.photoAt = clock; fx.flash = 0.45; fx.flashC = '#ffffff'; burst(200, 210, ['#22d66b', '#ffd23f', '#3a9bff', '#fff'], 26, 200); pop('+1 FOTO!', 200, 200, '#22d66b', 34); }
     else { const now = performance.now(); if (now - gv.lastProgSound > 45) { gv.lastProgSound = now; Snd.tone(300 + G.s.prog * 7, 0.03, 'square', 0.06); } }
   } else if (G.id === 'pesanan') {
     if (r.type === 'add') Snd.play('add', btn);
@@ -1228,35 +1249,54 @@ function drawPhoto(c, i, x, y, w, h) {
   c.restore();
 }
 function drawSinyal(c, G, C, t) {
-  const s = G.s;
-  const rows = (C.live || []).map(r => Object.assign({}, r, { bar: r.finishT != null ? 1 : r.prog / 100 }));
-  const me = C.me; const mr = rows.find(r => r.id === me); if (mr) { mr.bar = s.prog / 100; }
-  liveStrip(c, rows, r => r.finishT != null ? r.finishT.toFixed(2) + 's' : Math.floor(r.id === me ? s.prog : r.prog) + '%', me);
+  const s = G.s; const me = C.me;
+  const rows = (C.live || []).map(r => Object.assign({}, r, r.id === me ? { photos: s.photos, prog: s.prog } : {}));
+  rows.forEach(r => { r.bar = Math.max(0, Math.min(1, (r.prog || 0) / 100)); });
+  liveStrip(c, rows, r => '📷' + (r.photos || 0) + ' ' + Math.floor(r.prog || 0) + '%', me);
+  const k = clock - gv.photoAt; const fresh = k >= 0 && k < 0.35; // efek "foto terkirim"
   // ponsel
-  c.fillStyle = '#1a1a22'; rrect(c, 104, 46, 192, 380, 26); c.fill(); c.strokeStyle = '#ff5fc8'; c.lineWidth = 3; c.stroke();
+  c.fillStyle = '#1a1a22'; rrect(c, 104, 46, 192, 380, 26); c.fill(); c.strokeStyle = fresh ? '#22d66b' : '#ff5fc8'; c.lineWidth = 3; c.stroke();
   c.fillStyle = '#f2f0ff'; rrect(c, 114, 70, 172, 330, 8); c.fill();
   // status bar
   c.fillStyle = '#2a1252'; c.fillRect(114, 70, 172, 18);
   const bars = Math.floor((Math.sin(clock * 7) + 1) * 1.2); for (let i = 0; i < 4; i++) { c.fillStyle = i <= bars ? '#fff' : '#665'; c.fillRect(120 + i * 6, 84 - i * 3 - 3, 4, i * 3 + 3); }
   txt(c, 'E', 152, 79, 11, '#ffd23f', 'center', 900); txt(c, '19.45', 270, 79, 10, '#fff', 'right', 800);
-  txt(c, s.done ? 'Terkirim ✔' : 'Mengunggah 3 foto…', 200, 102, 13, '#2a1252', 'center', 900);
-  const ph = 72; for (let i = 0; i < 3; i++) {
-    const x = 124, y = 114 + i * (ph + 6), w = 152; const part = Math.max(0, Math.min(1, (s.prog - i * 33.34) / 33.33));
-    c.fillStyle = '#cfc8e6'; c.fillRect(x, y, w, ph);
-    if (part > 0) { const rh = Math.floor(ph * part / 6) * 6; c.save(); c.beginPath(); c.rect(x, y, w, rh); c.clip(); drawPhoto(c, i, x, y, w, ph); c.restore(); if (part < 1) { c.fillStyle = '#ffd23f'; c.fillRect(x, y + rh - 2, w, 3); } }
-    else { c.fillStyle = '#a9a0c6'; for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(x + w / 2 - 14 + k * 14, y + ph / 2, 3 + (Math.floor(clock * 4) % 3 === k ? 2 : 0), 0, Math.PI * 2); c.fill(); } }
+  // penghitung foto
+  txt(c, 'FOTO TERKIRIM', 200, 101, 12, '#2a1252', 'center', 900);
+  const popK = 1 + Math.max(0, 0.45 - k * 1.6);
+  comic(c, String(s.photos), 200, 128, 36 * popK, s.photos >= G.norma ? '#22d66b' : '#ffd23f', fresh ? -0.08 : 0);
+  // foto yang sedang diunggah (terbuka dari atas sesuai progres)
+  const x = 124, y = 152, w = 152, ph = 108, idx = s.photos % 3;
+  c.fillStyle = '#cfc8e6'; c.fillRect(x, y, w, ph);
+  if (fresh) { drawPhoto(c, (s.photos + 2) % 3, x, y, w, ph); c.globalAlpha = Math.max(0, 0.7 - k * 2); c.fillStyle = '#fff'; c.fillRect(x, y, w, ph); c.globalAlpha = 1; comic(c, 'TERKIRIM ✔', 200, y + ph / 2, 22, '#22d66b', -0.12); }
+  else if (s.prog > 0) { const rh = Math.floor(ph * s.prog / 100 / 6) * 6; c.save(); c.beginPath(); c.rect(x, y, w, rh); c.clip(); drawPhoto(c, idx, x, y, w, ph); c.restore(); c.fillStyle = '#ffd23f'; c.fillRect(x, y + rh - 2, w, 3); }
+  else { c.fillStyle = '#a9a0c6'; for (let d = 0; d < 3; d++) { c.beginPath(); c.arc(x + w / 2 - 14 + d * 14, y + ph / 2, 3 + (Math.floor(clock * 4) % 3 === d ? 2 : 0), 0, Math.PI * 2); c.fill(); } }
+  txt(c, s.over ? 'Selesai' : 'Mengunggah foto #' + (s.photos + 1) + '…', 200, y + ph + 11, 11, '#5a2f9a', 'center', 800);
+  // galeri foto terkirim (maks 2 baris × 7)
+  const per = 7, gy = 283;
+  for (let i = 0; i < Math.min(s.photos, 14); i++) {
+    const gx = 125 + (i % per) * 21.5, yy = gy + Math.floor(i / per) * 19;
+    c.fillStyle = PHOTO_COL[i % 3]; c.fillRect(gx, yy, 18, 15); c.fillStyle = '#22d66b'; c.fillRect(gx + 11, yy + 8, 6, 6);
+    if (i === 13 && s.photos > 14) { c.fillStyle = 'rgba(26,6,48,.8)'; c.fillRect(gx, yy, 18, 15); txt(c, '+' + (s.photos - 13), gx + 9, yy + 8, 9, '#fff', 'center', 900); }
   }
-  // bar progres
-  const by = 352; c.fillStyle = '#2a1252'; rrect(c, 124, by, 152, 20, 10); c.fill();
+  // bar progres foto berjalan (balik ke 0 tiap foto terkirim)
+  const by = 330; c.fillStyle = '#2a1252'; rrect(c, 124, by, 152, 20, 10); c.fill();
   const flick = s.prog > 0 && !s.over && Math.floor(clock * 12) % 2 === 0;
-  c.fillStyle = s.done ? '#22d66b' : (flick ? '#ffef9a' : '#ffd23f'); rrect(c, 126, by + 2, Math.max(0, 148 * s.prog / 100), 16, 8); c.fill();
-  comic(c, Math.floor(s.prog) + '%', 200, by + 34, 18, '#ffd23f');
-  // waktu
-  const shown = s.done ? s.finishT : Math.max(0, Math.min(s.limit, t));
-  txt(c, 'WAKTU', 52, 160, 11, '#c9b8f0', 'center', 900); comic(c, shown.toFixed(2), 52, 190, 26, s.done ? '#22d66b' : (t > s.limit - 1.5 ? '#ff3b5c' : '#fff'));
-  txt(c, 'NORMA', 348, 160, 11, '#c9b8f0', 'center', 900); comic(c, '≤' + s.limit.toFixed(2), 348, 190, 20, '#ffd23f');
-  if (s.over && !s.done) comic(c, 'GAGAL KIRIM!', 200, 240, 34, '#ff3b5c', -0.1);
-  if (s.done) comic(c, 'TERKIRIM!', 200, 240, 38, '#22d66b', -0.1);
+  if (s.prog > 0) { c.fillStyle = flick ? '#ffef9a' : '#ffd23f'; rrect(c, 126, by + 2, Math.max(8, 148 * s.prog / 100), 16, 8); c.fill(); }
+  if (fresh) { c.globalAlpha = Math.max(0, 1 - k / 0.35); c.fillStyle = '#22d66b'; rrect(c, 126, by + 2, 148, 16, 8); c.fill(); c.globalAlpha = 1; }
+  comic(c, Math.floor(s.prog) + '%', 200, by + 38, 18, '#ffd23f');
+  // hitung mundur
+  const left = Math.max(0, s.limit - Math.max(0, t));
+  txt(c, 'SISA', 52, 150, 11, '#c9b8f0', 'center', 900);
+  comic(c, left.toFixed(2), 52, 180, left < 3 && !s.over ? 28 + 2 * Math.sin(clock * 20) : 26, left < 3 ? '#ff3b5c' : '#fff');
+  txt(c, 'detik', 52, 204, 11, '#c9b8f0', 'center', 800);
+  txt(c, 'NORMA', 348, 150, 11, '#c9b8f0', 'center', 900); comic(c, String(G.norma), 348, 180, 26, s.photos >= G.norma ? '#22d66b' : '#ffd23f');
+  txt(c, s.photos >= G.norma ? 'foto ✔' : 'foto', 348, 204, 11, s.photos >= G.norma ? '#22d66b' : '#c9b8f0', 'center', 800);
+  if (s.over) {
+    if (!gv.endSnd) { gv.endSnd = true; Snd.play('end'); }
+    c.fillStyle = 'rgba(10,4,24,.6)'; c.fillRect(0, 200, VW, 90);
+    comic(c, 'WAKTU HABIS!', 200, 228, 32, '#ff3b5c', -0.08); comic(c, s.photos + ' FOTO TERKIRIM', 200, 266, 22, '#22d66b', -0.05);
+  }
 }
 function drawKasir(c, x, y) {
   c.fillStyle = '#ffcf9e'; c.beginPath(); c.arc(x, y, 18, 0, Math.PI * 2); c.fill();
@@ -1301,7 +1341,7 @@ function drawGame(c) {
   if (G.id !== 'mangga') $('#pad').classList.toggle('dim', phase !== 'play' || (G.s && G.s.over));
   if (phase === 'intro') { drawIntro(c, G, t); if (G.id === 'mangga') $('#pad').classList.add('dim'); return; }
   if (G.id === 'mangga') drawMangga(c, G, C); else if (G.id === 'sinyal') drawSinyal(c, G, C, t); else drawPesanan(c, G, C, t);
-  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, G.id === 'mangga' && G.parts.length > 1 ? 'NORMA TIM' : 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, G.id === 'sinyal' ? 28 : 46, '#ffd23f', -0.05); }
+  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, G.id === 'mangga' && G.parts.length > 1 ? 'NORMA TIM' : 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, G.id === 'sinyal' ? 23 : 46, '#ffd23f', -0.05); }
   else if (phase === 'ready') { const k = 1 + 0.1 * Math.sin(clock * 20); comic(c, 'READY...', 200, 210, 52 * k, '#ff5fc8', -0.08); }
   else if (t < 0.6) { const k = Math.max(0, t + 0.35); c.globalAlpha = Math.max(0, 1 - k); comic(c, 'GO!!', 200, 210, 70 + k * 80, '#5be36b', -0.1); c.globalAlpha = 1; }
 }
