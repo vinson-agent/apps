@@ -1556,21 +1556,29 @@ function drawTangga(c, G, C, t) {
   const top = liveStrip(c, rows, r => '🪜' + (r.score || 0) + (r.wrong ? ' ✕' + r.wrong : ''), me);
   const NAMES = ['merah', 'hijau', 'biru'];
   const queueY = top + 108;
+  const px = 110; // karakter berdiri di posisi tetap; tangga MASA DEPAN terang di kanan, yang SUDAH DIPIJAK redup di kiri (belakang)
+  const BEHIND = 2, AHEAD_SP = 50, BEHIND_SP = 38;
+  for (let k = BEHIND; k >= 1; k--) {
+    const stepIdx = s.idx - k; if (stepIdx < 0) continue;
+    const color = s.steps[stepIdx]; const h = Math.max(28, 52 - k * 8); const x = px - k * BEHIND_SP;
+    const img = 'step_' + NAMES[color] + '_dim';
+    if (!tgDraw(c, img, x, queueY, h)) { c.fillStyle = WR.COLORS[[0, 2, 3][color]]; c.globalAlpha = 0.4; rrect(c, x - h * 0.32, queueY - h / 2, h * 0.64, h, 8); c.fill(); c.globalAlpha = 1; }
+  }
   const n = Math.min(WR.mods.tangga.QUEUE, s.steps.length - s.idx);
   for (let i = n - 1; i >= 0; i--) {
     const color = s.steps[s.idx + i]; const isCur = i === 0;
-    const h = isCur ? 92 : Math.max(36, 62 - i * 5);
-    const x = 64 + i * 54;
-    const img = 'step_' + NAMES[color] + (isCur ? '' : '_dim');
-    if (!tgDraw(c, img, x, queueY, h)) { c.fillStyle = WR.COLORS[[0, 2, 3][color]]; c.globalAlpha = isCur ? 1 : 0.55; rrect(c, x - h * 0.32, queueY - h / 2, h * 0.64, h, 8); c.fill(); c.globalAlpha = 1; }
+    const h = isCur ? 92 : Math.max(38, 78 - i * 7);
+    const x = px + (i + 1) * AHEAD_SP;
+    const img = 'step_' + NAMES[color];
+    if (!tgDraw(c, img, x, queueY, h)) { c.fillStyle = WR.COLORS[[0, 2, 3][color]]; rrect(c, x - h * 0.32, queueY - h / 2, h * 0.64, h, 8); c.fill(); }
     if (isCur) { c.strokeStyle = '#ffd23f'; c.lineWidth = 3; c.beginPath(); c.arc(x, queueY, h * 0.62, 0, Math.PI * 2); c.stroke(); }
   }
   const locked = t < s.lockUntil;
   const recent = s.lastEv && (t - s.lastEvT) < 0.22;
   const pose = recent && s.lastEv === 'wrong' ? 'runner_wrong' : (recent && s.lastEv === 'step' ? 'runner_climb' : 'runner_idle');
-  const px = 240, py = queueY + 86;
-  if (locked) { c.strokeStyle = '#ff3b5c'; c.lineWidth = 4; c.beginPath(); c.arc(px, py, 58, 0, Math.PI * 2); c.stroke(); }
-  if (!tgDraw(c, pose, px, py, 150)) drawChibiFace(c, px, py, 1.6, '#ff5fc8', '#ffd9a8', locked ? 'surprised' : 'happy');
+  const py = queueY + 60;
+  if (locked) { c.strokeStyle = '#ff3b5c'; c.lineWidth = 4; c.beginPath(); c.arc(px, py, 50, 0, Math.PI * 2); c.stroke(); }
+  if (!tgDraw(c, pose, px, py, 130)) drawChibiFace(c, px, py, 1.4, '#ff5fc8', '#ffd9a8', locked ? 'surprised' : 'happy');
   comic(c, (s.idx || 0) + ' / ' + G.norma, 330, top + 20, 18, (s.idx || 0) >= G.norma ? '#5be36b' : '#ffd23f');
   if (s.wrong) txt(c, s.wrong + ' salah', 330, top + 40, 11, '#ff8a2b', 'center', 700);
   if (s.over) {
