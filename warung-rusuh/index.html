@@ -157,17 +157,25 @@ WR.GAMES = {
   pesanan: { id: 'pesanan', title: 'Pesanan Kilat', kind: 'race', duration: 40, tag: 'Pembeli antre, layani cepat!',
     how: ['Lihat pesanan di atas kasir.', 'MERAH = sate, HIJAU = kerupuk, BIRU = es teh.', 'Tekan sesuai jumlah. Kelebihan = HANGUS!', 'Pesanan makin banyak. Kejar poinnya!'],
     sub: 'Balapan · hitung & susun' },
+  pembeli: { id: 'pembeli', title: 'Siapa Pembeli Ini?', kind: 'race', duration: 15, tag: 'Cari pelangganmu di antara orang lewat!',
+    how: ['Lihat contoh pelanggan di atas.', 'Kalau yang lewat DIA: tekan MERAH cepat!', 'Kalau BUKAN dia: tekan HIJAU cepat!', 'Makin cepat & tepat, makin banyak poin!'],
+    sub: 'Reaksi 15 dtk · kenali pelangganmu' },
+  tangga: { id: 'tangga', title: 'Turun Tangga Pasar', kind: 'race', duration: 18, tag: 'Jangan sampai ketimpa barang jatuh!',
+    how: ['Kamu ada di salah satu jalur: MERAH/HIJAU/BIRU.', 'Barang jatuh dari atas, kelihatan sebelum nyampe.', 'Pindah jalur yang kosong sebelum kena!', 'Kena 3x = berhenti. Paling jauh menang!'],
+    sub: 'Balapan 18 dtk · hindari & selamat' },
 };
-WR.MARATHON = ['mangga', 'sinyal', 'pesanan'];
-WR.SELECTIONS = ['mangga', 'sinyal', 'pesanan', 'maraton'];
-WR.selTitle = function (s) { return s === 'maraton' ? 'Maraton (3 game)' : (WR.GAMES[s] ? WR.GAMES[s].title : s); };
+WR.MARATHON = ['mangga', 'pembeli', 'sinyal', 'tangga', 'pesanan'];
+WR.SELECTIONS = ['mangga', 'pembeli', 'sinyal', 'tangga', 'pesanan', 'maraton'];
+WR.selTitle = function (s) { return s === 'maraton' ? 'Maraton (5 game)' : (WR.GAMES[s] ? WR.GAMES[s].title : s); };
 WR.normaFor = function (id, round) {
   const k = 1 + 0.1 * (round || 0);
   if (id === 'mangga') return Math.min(22, Math.ceil(14 * k - 1e-9));
   if (id === 'sinyal') return Math.ceil(SINYAL.NORMA * k - 1e-9);
+  if (id === 'pembeli') return Math.ceil(80 * k - 1e-9);
+  if (id === 'tangga') return Math.ceil(12 * k - 1e-9);
   return Math.ceil(15 * k - 1e-9);
 };
-WR.normaText = function (id, n) { return id === 'sinyal' ? n + ' foto dalam ' + WR.GAMES.sinyal.duration + ' dtk' : n + ' poin'; };
+WR.normaText = function (id, n) { return id === 'sinyal' ? n + ' foto dalam ' + WR.GAMES.sinyal.duration + ' dtk' : id === 'tangga' ? n + ' langkah selamat' : n + ' poin'; };
 WR.RANKS = [[0, 'Kerupuk'], [15, 'Gorengan'], [30, 'Sate'], [45, 'Bakso'], [60, 'Nasi Goreng'], [80, 'Raja Warung'], [100, 'Sultan Pasar Malam']];
 WR.rankFor = function (total) { let r = WR.RANKS[0][1]; for (const [min, name] of WR.RANKS) if (total >= min) r = name; return r; };
 
@@ -262,7 +270,90 @@ const MANGGA = {
   },
   report(s) { return { score: s.score, prog: s.score, strikes: s.strikes, finishT: s.over && s.doneReason !== 'time' ? s.t : null, over: s.over }; },
 };
-WR.mods = { sinyal: SINYAL, pesanan: PESANAN, mangga: MANGGA };
+// ---------- 7.4 Siapa Pembeli Ini?: balapan reaksi 15 dtk ----------
+const PEMBELI = {
+  TARGET_CHANCE: 0.32, SLOT_MIN: 0.8, SLOT_MAX: 1.25, BASE_PTS: 10, BONUS_PTS: 6,
+  genSlots(seed, limit) {
+    const r = WR.rng(seed >>> 0); const slots = []; let t = 0.5;
+    while (t < limit - 0.3) {
+      const dur = PEMBELI.SLOT_MIN + r() * (PEMBELI.SLOT_MAX - PEMBELI.SLOT_MIN);
+      const isTarget = r() < PEMBELI.TARGET_CHANCE;
+      const kind = isTarget ? 0 : 1 + Math.floor(r() * 3); // 0=target, 1..3 = tipe pengunjung lain
+      slots.push({ t0: t, dur, kind, isTarget, resolved: false, hit: null });
+      t += dur;
+    }
+    return slots;
+  },
+  create(o) {
+    return { seed: o.seed >>> 0, limit: o.limit || WR.GAMES.pembeli.duration, t: 0,
+      slots: PEMBELI.genSlots(o.seed >>> 0, o.limit || WR.GAMES.pembeli.duration),
+      score: 0, correct: 0, wrong: 0, missed: 0, over: false };
+  },
+  _find(s, t) { return s.slots.find(sl => !sl.resolved && t >= sl.t0 && t < sl.t0 + sl.dur); },
+  update(s, t) {
+    if (s.over) return;
+    s.t = Math.max(s.t, t);
+    for (const sl of s.slots) { if (!sl.resolved && t >= sl.t0 + sl.dur) { sl.resolved = true; sl.hit = false; s.missed++; } }
+    if (t >= s.limit) { s.t = s.limit; s.over = true; }
+  },
+  input(s, btn, t) {
+    if (s.over || t < 0 || !(btn === 0 || btn === 1)) return null;
+    PEMBELI.update(s, t); if (s.over) return null;
+    const sl = PEMBELI._find(s, t); if (!sl) return null;
+    sl.resolved = true;
+    const wantBtn = sl.isTarget ? 0 : 1;
+    if (btn === wantBtn) {
+      const speed = Math.max(0, (sl.dur - (t - sl.t0)) / sl.dur);
+      const pts = PEMBELI.BASE_PTS + Math.round(PEMBELI.BONUS_PTS * speed);
+      s.score += pts; s.correct++; sl.hit = true;
+      return { type: 'hit', isTarget: sl.isTarget, pts };
+    }
+    s.wrong++; sl.hit = false;
+    return { type: 'wrong', isTarget: sl.isTarget };
+  },
+  report(s) { return { score: s.score, prog: s.correct, finishT: null, over: s.over }; },
+};
+// ---------- 7.5 Turun Tangga Pasar: balapan hindar 18 dtk ----------
+const TANGGA = {
+  STRIKES: 3, LEAD: 1.0,
+  genWaves(seed, limit) {
+    const r = WR.rng(seed >>> 0); const waves = []; let t = 1.4; let i = 0;
+    while (t < limit - 0.2) {
+      const interval = Math.max(0.5, 1.05 - 0.035 * i);
+      waves.push({ tArrive: t, lane: Math.floor(r() * 3), resolved: false, hit: null });
+      t += interval; i++;
+    }
+    return waves;
+  },
+  create(o) {
+    return { seed: o.seed >>> 0, limit: o.limit || WR.GAMES.tangga.duration, t: 0, lane: 1,
+      waves: TANGGA.genWaves(o.seed >>> 0, o.limit || WR.GAMES.tangga.duration),
+      score: 0, strikes: 0, over: false, doneReason: null };
+  },
+  update(s, t) {
+    if (s.over) return;
+    for (const w of s.waves) {
+      if (w.resolved || t < w.tArrive) continue;
+      w.resolved = true;
+      if (w.lane === s.lane) {
+        w.hit = true; s.strikes++;
+        if (s.strikes >= TANGGA.STRIKES) { s.over = true; s.doneReason = 'strikeout'; s.t = w.tArrive; break; }
+      } else { w.hit = false; s.score++; }
+    }
+    if (!s.over) {
+      s.t = Math.max(s.t, t);
+      if (t >= s.limit) { s.t = s.limit; s.over = true; s.doneReason = 'time'; }
+    }
+  },
+  input(s, btn, t) {
+    if (s.over || t < 0 || !(btn >= 0 && btn <= 2)) return null;
+    TANGGA.update(s, t); if (s.over) return null;
+    s.lane = btn;
+    return { type: 'move', lane: btn };
+  },
+  report(s) { return { score: s.score, prog: s.score, strikes: s.strikes, finishT: s.over && s.doneReason !== 'time' ? s.t : null, over: s.over }; },
+};
+WR.mods = { sinyal: SINYAL, pesanan: PESANAN, mangga: MANGGA, pembeli: PEMBELI, tangga: TANGGA };
 
 WR.racePoints = function (id, r, norma) {
   if (id === 'sinyal') {
@@ -275,6 +366,16 @@ WR.racePoints = function (id, r, norma) {
     const ft = r.finishT == null ? 9999 : Math.max(0, Math.min(999, Math.round(r.finishT * 10)));
     return { points: score, pass: score >= norma, detail: score + ' mangga' + (strikes ? ' · ' + strikes + ' petasan' : ''),
       sortKey: -(score * 1e6) + strikes * 1e4 + ft };
+  }
+  if (id === 'pembeli') {
+    const score = Math.max(0, Math.round(r.score || 0));
+    return { points: score, pass: score >= norma, detail: score + ' poin (' + (r.prog || 0) + ' benar)', sortKey: -score };
+  }
+  if (id === 'tangga') {
+    const dist = Math.max(0, r.score || 0), strikes = Math.max(0, Math.min(9, r.strikes || 0));
+    const ft = r.finishT == null ? 9999 : Math.max(0, Math.min(999, Math.round(r.finishT * 10)));
+    return { points: dist, pass: dist >= norma, detail: dist + ' langkah' + (strikes ? ' · ' + strikes + ' kena' : ''),
+      sortKey: -(dist * 1e6) + strikes * 1e4 + ft };
   }
   return { points: r.score, pass: r.score >= norma, detail: (r.prog || 0) + ' pesanan', sortKey: -r.score };
 };
@@ -462,6 +563,9 @@ class RoomHost {
     } else if (G.id === 'mangga') {
       G.reports[p.id] = { score: Math.floor(num(m.score, 0, 99)), prog: Math.floor(num(m.prog, 0, 99)), strikes: Math.floor(num(m.strikes, 0, 3)),
         finishT: m.finishT == null ? null : num(m.finishT, 0, WR.GAMES.mangga.duration), over: !!m.over };
+    } else if (G.id === 'tangga') {
+      G.reports[p.id] = { score: Math.floor(num(m.score, 0, 999)), prog: Math.floor(num(m.prog, 0, 999)), strikes: Math.floor(num(m.strikes, 0, 3)),
+        finishT: m.finishT == null ? null : num(m.finishT, 0, WR.GAMES.tangga.duration), over: !!m.over };
     } else {
       G.reports[p.id] = { score: Math.floor(num(m.score, 0, 9999)), prog: Math.floor(num(m.prog, 0, 9999)), finishT: null, over: !!m.over };
     }
@@ -478,6 +582,7 @@ class RoomHost {
         r = WR.racePoints(G.id, rep, G.norma); r.prog = rep.prog; r.score = rep.score; r.finishT = rep.finishT; r.over = rep.over;
         if (G.id === 'sinyal') { r.photos = rep.photos || 0; r.lastPhotoT = rep.lastPhotoT == null ? null : rep.lastPhotoT; }
         if (G.id === 'mangga') { r.strikes = rep.strikes || 0; }
+        if (G.id === 'tangga') { r.strikes = rep.strikes || 0; }
       } else {
         const per = G.m.per[pid] || { m: 0, p: 0 }; const pts = MANGGA.points(G.m, pid, G.parts.length);
         r = { points: pts, pass: G.m.team >= G.norma, team: G.m.team, m: per.m, p: per.p, detail: per.m + ' mangga · ' + per.p + ' petasan', sortKey: -pts };
@@ -835,7 +940,7 @@ function screenSoloMenu() {
   teardown(); setIngame(false);
   const b = (id, cls) => '<button class="btn ' + cls + '" data-act="solo" data-g="' + id + '">' + esc(id === 'maraton' ? 'Maraton Arcade (3 nyawa)' : WR.GAMES[id].title) + '<br><small style="font-weight:600">' + esc(hsText(id)) + '</small></button>';
   show('<div class="scr"><h2>Latihan Solo</h2><p class="note">Tanpa jaringan. Logika game sama persis dengan mode online.</p>' +
-    b('mangga', 'red') + b('sinyal', 'green') + b('pesanan', 'blue') + b('maraton', '') +
+    b('mangga', 'red') + b('pembeli', '') + b('sinyal', 'green') + b('tangga', '') + b('pesanan', 'blue') + b('maraton', '') +
     '<button class="btn ghost" data-act="menu">← Kembali</button></div>', 'solomenu');
 }
 function nameField() { return '<label for="nm">Nama panggilan</label><input id="nm" type="text" maxlength="12" autocomplete="nickname" placeholder="mis. Budi" value="' + esc(getName()) + '">'; }
@@ -1100,6 +1205,50 @@ function drawTeh(c, x, y, s) {
   c.strokeStyle = '#fff'; c.lineWidth = 1; c.beginPath(); c.moveTo(-8, -10); c.lineTo(-6, 10); c.stroke(); c.restore();
 }
 function drawPhoneIcon(c, x, y, s) { c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = '#222'; rrect(c, -7, -11, 14, 22, 3); c.fill(); c.fillStyle = '#3a9bff'; c.fillRect(-5, -8, 10, 14); c.fillStyle = '#ffd23f'; c.fillRect(-5, 0, 6, 2); c.restore(); }
+// ---------------- Wajah chibi (gaya pesta warna-warni, garis tebal) — desain orisinal ----------------
+function drawChibiFace(c, x, y, s, hatColor, skinColor, mood) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.lineJoin = 'round'; c.lineWidth = 2.6; c.strokeStyle = '#1a0630';
+  // kepala (bulat besar, proporsi chibi)
+  c.fillStyle = skinColor || '#ffd9a8'; c.beginPath(); c.arc(0, 2, 16, 0, Math.PI * 2); c.fill(); c.stroke();
+  // ikat kepala / topi berwarna
+  c.fillStyle = hatColor; c.beginPath(); c.arc(0, -4, 16.2, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = hatColor; c.beginPath(); c.ellipse(11, -2, 5, 7, 0.4, 0, Math.PI * 2); c.fill(); c.stroke();
+  // pipi merah
+  c.fillStyle = 'rgba(255,100,120,.55)'; c.beginPath(); c.arc(-9, 7, 3.2, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(9, 7, 3.2, 0, Math.PI * 2); c.fill();
+  // mata besar (gaya chibi)
+  [-6, 6].forEach(ex => {
+    c.fillStyle = '#fff'; c.beginPath(); c.ellipse(ex, 1, 4.6, 5.6, 0, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#1a0630'; c.lineWidth = 1.6; c.stroke();
+    c.fillStyle = '#1a0630'; c.beginPath(); c.arc(ex + (mood === 'surprised' ? 0 : 1), 2, 2.6, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(ex - 1, 0, 0.9, 0, Math.PI * 2); c.fill();
+  });
+  // mulut
+  c.strokeStyle = '#1a0630'; c.lineWidth = 2;
+  c.beginPath();
+  if (mood === 'surprised') { c.ellipse(0, 10, 2.4, 3, 0, 0, Math.PI * 2); c.fillStyle = '#7a1030'; c.fill(); c.stroke(); }
+  else { c.arc(0, 7, 5, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke(); }
+  c.restore();
+}
+function drawCrate(c, x, y, s) {
+  c.save(); c.translate(x, y); c.scale(s, s); c.lineJoin = 'round'; c.strokeStyle = '#1a0630'; c.lineWidth = 2;
+  c.fillStyle = '#b5712b'; rrect(c, -12, -10, 24, 20, 3); c.fill(); c.stroke();
+  c.strokeStyle = '#7a3d12'; c.lineWidth = 2; c.beginPath(); c.moveTo(-12, 0); c.lineTo(12, 0); c.moveTo(0, -10); c.lineTo(0, 10); c.stroke();
+  c.restore();
+}
+function drawBasket(c, x, y, s) {
+  c.save(); c.translate(x, y); c.scale(s, s); c.lineJoin = 'round'; c.strokeStyle = '#1a0630'; c.lineWidth = 2;
+  c.fillStyle = '#e0a84f'; c.beginPath(); c.moveTo(-13, -4); c.lineTo(13, -4); c.lineTo(9, 11); c.lineTo(-9, 11); c.closePath(); c.fill(); c.stroke();
+  for (let i = -8; i <= 8; i += 4) { c.beginPath(); c.moveTo(i, -4); c.lineTo(i * 0.7, 11); c.stroke(); }
+  c.strokeStyle = '#7a3d12'; c.beginPath(); c.moveTo(-9, -4); c.quadraticCurveTo(0, -18, 9, -4); c.stroke();
+  c.restore();
+}
+function drawPuddle(c, x, y, s) {
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.fillStyle = 'rgba(80,180,255,.55)'; c.beginPath(); c.ellipse(0, 0, 14, 7, 0, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = 'rgba(200,240,255,.8)'; c.lineWidth = 1.6; c.beginPath(); c.ellipse(0, 0, 10, 5, 0, 0, Math.PI * 2); c.stroke();
+  c.restore();
+}
 function drawIcons() {
   document.querySelectorAll('canvas.ic').forEach(el => {
     const c = el.getContext('2d'); c.clearRect(0, 0, 22, 22); const k = el.dataset.ic;
@@ -1107,6 +1256,8 @@ function drawIcons() {
     else if (k === 'sinyal') drawPhoneIcon(c, 11, 11, 0.9);
     else if (k === 'pesanan') drawSate(c, 11, 11, 0.55);
     else if (k === 'maraton') { spr(c, 'mango', 6, 7, 0.8); drawTeh(c, 15, 12, 0.45); drawSate(c, 9, 17, 0.35); }
+    else if (k === 'pembeli') drawChibiFace(c, 11, 12, 0.5, '#ff3b5c', '#ffd9a8', 'happy');
+    else if (k === 'tangga') drawBasket(c, 11, 12, 0.6);
     else { spr(c, 'cat', 11, 11, 1.6); }
   });
 }
@@ -1126,7 +1277,7 @@ function drawFx(c) {
 }
 
 // ---------------- Masuk game ----------------
-const PADLBL = { mangga: ['TEKAN', 'TEKAN', 'TEKAN'], sinyal: ['PENCET', 'PENCET', 'PENCET'], pesanan: ['SATE', 'KERUPUK', 'ES TEH'] };
+const PADLBL = { mangga: ['TEKAN', 'TEKAN', 'TEKAN'], sinyal: ['PENCET', 'PENCET', 'PENCET'], pesanan: ['SATE', 'KERUPUK', 'ES TEH'], pembeli: ['INI DIA!', 'BUKAN', '—'], tangga: ['KIRI', 'TENGAH', 'KANAN'] };
 let gv = null; // status tampilan game lokal
 function enterGame(G) {
   hideOv('game'); setIngame(true);
@@ -1160,6 +1311,11 @@ function press(btn) {
   } else if (G.id === 'mangga') {
     if (r.type === 'mango') { Snd.play('mango'); const p = platePos(r.plate); burst(p.x, p.y, ['#ffd23f', '#ff9a2b', '#5be36b', '#fff'], 20, 140); pop('+1', p.x, p.y - 20, '#5be36b', 28); if (r.refilled) { pop('PANEN KEDUA!', 200, 250, '#ffd23f', 34); Snd.play('ok'); } }
     else if (r.type === 'petasan') { Snd.play('boom'); fx.shake = 14; fx.flash = 1; fx.flashC = '#ffef9a'; const p = platePos(r.plate); burst(p.x, p.y, ['#ff3b5c', '#ffd23f', '#ff8a2b', '#fff', '#555'], 40, 260); pop('DUAR!!', p.x, p.y - 10, '#ff3b5c', 36); }
+  } else if (G.id === 'pembeli') {
+    if (r.type === 'hit') { Snd.play('ok'); burst(200, 210, ['#ffd23f', '#5be36b', '#fff'], 18, 160); pop('+' + r.pts, 200, 190, '#5be36b', 32); }
+    else if (r.type === 'wrong') { Snd.play('burn'); fx.shake = 6; pop('SALAH!', 200, 190, '#ff3b5c', 30); }
+  } else if (G.id === 'tangga') {
+    Snd.play('tap');
   }
 }
 const KEYS = { a: 0, s: 1, d: 2, ' ': 3, arrowleft: 0, arrowdown: 1, arrowright: 2, j: 0, k: 1, l: 2 };
@@ -1222,7 +1378,14 @@ function drawIntro(c, G, t) {
   const y = 330;
   if (G.id === 'mangga') { spr(c, 'mango', 150, y, 3); spr(c, 'petasan', 250, y, 3); txt(c, '+1', 150, y + 34, 16, '#5be36b'); txt(c, 'STRIKE', 250, y + 34, 16, '#ff3b5c'); }
   else if (G.id === 'sinyal') { drawPhoneIcon(c, 200, y, 2.4); for (let i = 0; i < 3; i++) if (Math.sin(clock * 30 + i * 2) > 0) comic(c, 'ASD'[i], 150 + i * 50, y + 38, 18, WR.COLORS[[0, 2, 3][i]]); }
-  else { drawSate(c, 110, y, 1.5); drawKerupuk(c, 200, y, 1.6); drawTeh(c, 290, y, 1.5); ['A', 'S', 'D'].forEach((l, i) => comic(c, l, WR_COLX[i] + (i === 0 ? 40 : i === 2 ? -40 : 0), y + 34, 18, WR.COLORS[[0, 2, 3][i]])); }
+  else if (G.id === 'pesanan') { drawSate(c, 110, y, 1.5); drawKerupuk(c, 200, y, 1.6); drawTeh(c, 290, y, 1.5); ['A', 'S', 'D'].forEach((l, i) => comic(c, l, WR_COLX[i] + (i === 0 ? 40 : i === 2 ? -40 : 0), y + 34, 18, WR.COLORS[[0, 2, 3][i]])); }
+  else if (G.id === 'pembeli') {
+    drawChibiFace(c, 150, y, 2.2, '#ff3b5c', '#ffd9a8', 'happy'); txt(c, 'DIA = MERAH', 150, y + 40, 14, '#5be36b', 'center', 900);
+    drawChibiFace(c, 250, y, 2.2, '#3a9bff', '#c89bff', 'happy'); txt(c, 'BUKAN = HIJAU', 250, y + 40, 14, '#ff8a2b', 'center', 900);
+  } else if (G.id === 'tangga') {
+    ['A', 'S', 'D'].forEach((l, i) => comic(c, l, 120 + i * 80, y + 10, 20, WR.COLORS[[0, 2, 3][i]]));
+    drawCrate(c, 120, y - 36, 1.1); drawBasket(c, 280, y - 36, 1.1);
+  }
   if (G.mara) txt(c, G.mara.arcade ? 'Maraton Arcade · Putaran ' + (G.round + 1) + ' · Nyawa ' + '❤'.repeat(Math.max(0, G.mara.lives)) : 'Maraton · game ' + (G.mara.idx + 1) + '/' + G.mara.len, 200, 400, 13, '#ffd23f');
 }
 function padDemo(G, t) {
@@ -1230,6 +1393,8 @@ function padDemo(G, t) {
   if (t < -3 && t > -6.4) {
     if (G.id === 'mangga') { const i = Math.floor(clock * 1.5) % 3; on[i] = (clock * 1.5) % 1 < 0.3; }
     else if (G.id === 'sinyal') on = [0, 1, 2].map(i => Math.sin(clock * 40 + i * 2.1) > 0.3);
+    else if (G.id === 'pembeli') { on[0] = Math.sin(clock * 6) > 0.5; on[1] = Math.sin(clock * 6 + 2) > 0.5; }
+    else if (G.id === 'tangga') { const i = Math.floor(clock * 2) % 3; on[i] = (clock * 2) % 1 < 0.5; }
     else { const seq = [0, 0, 1, 2, 2, 2]; const k = Math.floor(clock * 4) % 8; if (k < 6 && (clock * 4) % 1 < 0.5) on[seq[k]] = true; }
   }
   els.forEach((el, i) => el.classList.toggle('demo', on[i]));
@@ -1356,6 +1521,57 @@ function drawPesanan(c, G, C, t) {
   }
   if (s.over) comic(c, 'TUTUP WARUNG!', 200, 250, 34, '#ff3b5c', -0.08);
 }
+function drawPembeli(c, G, C, t) {
+  const s = G.s; const me = C.me;
+  const rows = (C.live || []).map(r => Object.assign({}, r, r.id === me ? { score: s.score, prog: s.correct } : {}));
+  rows.forEach(r => { r.bar = Math.max(0, Math.min(1, (r.score || 0) / Math.max(1, G.norma))); });
+  const top = liveStrip(c, rows, r => (r.score || 0) + ' poin', me);
+  // contoh pelanggan yang dicari (tetap, di kartu kecil atas)
+  c.fillStyle = 'rgba(10,4,24,.72)'; rrect(c, 110, top + 8, 180, 44, 12); c.fill(); c.strokeStyle = '#ffd23f'; c.lineWidth = 2; c.stroke();
+  drawChibiFace(c, 136, top + 30, 1.0, '#ff3b5c', '#ffd9a8', 'happy');
+  txt(c, 'CARI DIA!', 210, top + 22, 12, '#ffd23f', 'left', 900); txt(c, 'MERAH = ya, HIJAU = bukan', 210, top + 38, 10.5, '#c9b8f0', 'left', 700);
+  comic(c, (s.score || 0) + ' / ' + G.norma, 330, top + 30, 20, (s.score || 0) >= G.norma ? '#5be36b' : '#ffd23f');
+  // panggung: pelanggan yang lewat sekarang
+  const sl = s.over ? null : s.slots.find(x => t >= x.t0 && t < x.t0 + x.dur);
+  const cy = 250;
+  c.fillStyle = 'rgba(255,255,255,.06)'; rrect(c, 60, cy - 70, 280, 150, 20); c.fill();
+  if (sl) {
+    const HATS = ['#ff3b5c', '#3a9bff', '#ffd23f', '#22d66b'];
+    const k = Math.min(1, (t - sl.t0) * 6);
+    c.save(); c.globalAlpha = k;
+    drawChibiFace(c, 200, cy, 3.2, HATS[sl.kind], sl.kind === 0 ? '#ffd9a8' : '#e8c9a0', sl.resolved && sl.hit === false ? 'surprised' : 'happy');
+    c.restore();
+    if (sl.isTarget) { comic(c, '!', 200, cy - 70, 30, '#ffd23f', Math.sin(clock * 10) * 0.1); }
+    const left = Math.max(0, (sl.t0 + sl.dur) - t);
+    c.fillStyle = sl.isTarget ? '#ff3b5c' : '#3a9bff'; c.fillRect(140, cy + 62, 120 * Math.max(0, left / sl.dur), 6);
+  } else { txt(c, '…', 200, cy, 30, '#c9b8f0'); }
+  if (s.over) { c.fillStyle = 'rgba(10,4,24,.6)'; c.fillRect(0, 200, VW, 90); comic(c, 'WAKTU HABIS!', 200, 228, 32, '#ff3b5c', -0.08); comic(c, s.score + ' POIN', 200, 266, 24, '#22d66b', -0.05); }
+}
+function drawTangga(c, G, C, t) {
+  const s = G.s; const me = C.me;
+  const rows = (C.live || []).map(r => Object.assign({}, r, r.id === me ? { score: s.score, strikes: s.strikes } : {}));
+  rows.forEach(r => { r.bar = Math.max(0, Math.min(1, (r.score || 0) / Math.max(1, G.norma))); });
+  const top = liveStrip(c, rows, r => '🏃' + (r.score || 0) + ' 💥' + (r.strikes || 0), me);
+  for (let i = 0; i < 3; i++) { const x = WR_COLX[i]; c.fillStyle = i === s.lane ? 'rgba(255,210,63,.14)' : 'rgba(255,255,255,.05)'; rrect(c, x - 55, top + 4, 110, VH - top - 94, 10); c.fill(); c.strokeStyle = WR.COLORS[[0, 2, 3][i]]; c.lineWidth = 2; c.stroke(); }
+  const impactY = VH - 100;
+  const icons = [drawCrate, drawBasket, drawPuddle];
+  for (const w of s.waves) {
+    const lead = WR.mods.tangga.LEAD; const vis = w.tArrive - lead <= t && t <= w.tArrive + 0.25;
+    if (!vis) continue;
+    const prog = Math.max(0, Math.min(1, (t - (w.tArrive - lead)) / lead));
+    const y = top + 30 + prog * (impactY - top - 30);
+    icons[w.lane](c, WR_COLX[w.lane], y, 1.3);
+  }
+  c.strokeStyle = '#ffd23f'; c.setLineDash([6, 6]); c.beginPath(); c.moveTo(20, impactY); c.lineTo(VW - 20, impactY); c.stroke(); c.setLineDash([]);
+  drawChibiFace(c, WR_COLX[s.lane], impactY + 36, 2.0, '#ff5fc8', '#ffd9a8', s.over && s.doneReason === 'strikeout' ? 'surprised' : 'happy');
+  for (let i = 0; i < 3; i++) { c.fillStyle = i < (s.strikes || 0) ? '#ff3b5c' : 'rgba(255,255,255,.15)'; rrect(c, 22 + i * 26, top + 6, 20, 20, 5); c.fill(); comic(c, '✕', 32 + i * 26, top + 17, 15, i < (s.strikes || 0) ? '#fff' : 'rgba(255,255,255,.3)'); }
+  comic(c, (s.score || 0) + ' / ' + G.norma, 330, top + 20, 18, (s.score || 0) >= G.norma ? '#5be36b' : '#ffd23f');
+  if (s.over) {
+    c.fillStyle = 'rgba(10,4,24,.6)'; c.fillRect(0, 160, VW, 90);
+    comic(c, s.doneReason === 'strikeout' ? 'KETIMPA!' : 'SELESAI!', 200, 188, 32, s.doneReason === 'strikeout' ? '#ff3b5c' : '#5be36b', -0.08);
+    comic(c, s.score + ' langkah', 200, 226, 22, '#ffd23f', -0.04);
+  }
+}
 function drawGame(c) {
   const C = app.client; if (!C || !C.game || !gv) return;
   const G = C.game; const t = C.t();
@@ -1365,8 +1581,9 @@ function drawGame(c) {
   padDemo(G, t);
   $('#pad').classList.toggle('dim', phase !== 'play' || (G.s && G.s.over));
   if (phase === 'intro') { drawIntro(c, G, t); return; }
-  if (G.id === 'mangga') drawMangga(c, G, C, t); else if (G.id === 'sinyal') drawSinyal(c, G, C, t); else drawPesanan(c, G, C, t);
-  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, G.id === 'sinyal' ? 23 : 40, '#ffd23f', -0.05); }
+  const DRAW = { mangga: drawMangga, sinyal: drawSinyal, pesanan: drawPesanan, pembeli: drawPembeli, tangga: drawTangga };
+  (DRAW[G.id] || drawPesanan)(c, G, C, t);
+  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, (G.id === 'sinyal' || G.id === 'tangga') ? 23 : 40, '#ffd23f', -0.05); }
   else if (phase === 'ready') { const k = 1 + 0.1 * Math.sin(clock * 20); comic(c, 'READY...', 200, 210, 52 * k, '#ff5fc8', -0.08); }
   else if (t < 0.6) { const k = Math.max(0, t + 0.35); c.globalAlpha = Math.max(0, 1 - k); comic(c, 'GO!!', 200, 210, 70 + k * 80, '#5be36b', -0.1); c.globalAlpha = 1; }
 }
