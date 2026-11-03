@@ -1278,7 +1278,7 @@ function drawFx(c) {
 }
 
 // ---------------- Masuk game ----------------
-const PADLBL = { mangga: ['TEKAN', 'TEKAN', 'TEKAN'], sinyal: ['PENCET', 'PENCET', 'PENCET'], pesanan: ['SATE', 'KERUPUK', 'ES TEH'], pembeli: ['INI DIA!', 'BUKAN', '—'], tangga: ['KIRI', 'TENGAH', 'KANAN'] };
+const PADLBL = { mangga: ['TEKAN', 'TEKAN', 'TEKAN'], sinyal: ['PENCET', 'PENCET', 'PENCET'], pesanan: ['SATE', 'KERUPUK', 'ES TEH'], pembeli: ['INI DIA!', 'BUKAN', '—'], tangga: ['MERAH', 'HIJAU', 'BIRU'] };
 let gv = null; // status tampilan game lokal
 function enterGame(G) {
   hideOv('game'); setIngame(true);
@@ -1556,7 +1556,7 @@ function drawTangga(c, G, C, t) {
   const top = liveStrip(c, rows, r => '🪜' + (r.score || 0) + (r.wrong ? ' ✕' + r.wrong : ''), me);
   const NAMES = ['merah', 'hijau', 'biru'];
   const queueY = top + 108;
-  const n = Math.min(TANGGA.QUEUE, s.steps.length - s.idx);
+  const n = Math.min(WR.mods.tangga.QUEUE, s.steps.length - s.idx);
   for (let i = n - 1; i >= 0; i--) {
     const color = s.steps[s.idx + i]; const isCur = i === 0;
     const h = isCur ? 92 : Math.max(36, 62 - i * 5);
