@@ -24,7 +24,7 @@ Pemain yang keluar tidak menghentikan room. Kalau host keluar, room ditutup dan 
 
 | Game | Aturan | Norma |
 |---|---|---|
-| Mangga atau Petasan | 12 piring, penanda berputar. Tekan tombol apa saja untuk berhenti. Mangga +1 dan diganti petasan, kecepatan naik. Petasan = strike. Online: bergiliran, strike dipakai bersama. Giliran > 10 dtk = strike. | 14 poin tim, 3 strike |
+| Mangga atau Petasan | Balapan 20 dtk, piring sendiri-sendiri (seed sama tiap putaran). Tekan tombol apa saja untuk memetik di posisi penanda saat ini. Mangga +1 & diganti petasan, kecepatan naik, 2 panen. Petasan = strike milikmu sendiri; 3 strike = kamu berhenti duluan, pemain lain lanjut. Pemenang = skor terbanyak; seri → strike lebih sedikit → selesai (panen habis) lebih awal. | 14 mangga |
 | Sinyal Lemot | Balapan tetap 10,00 dtk untuk semua. Pencet tombol apa saja: tiap bar 100% = 1 foto terkirim, bar balik ke 0 (sisa tidak dibawa), main terus sampai waktu habis. Progres turun kalau berhenti. Pemenang = foto terbanyak; seri → progres foto berjalan lebih tinggi → foto terakhir lebih awal. | 3 foto dalam 10 dtk |
 | Pesanan Kilat | Pesanan sate (merah), kerupuk (hijau), es teh (biru). Tekan sesuai jumlah. Kelebihan = hangus, tanpa poin. Pesanan makin besar. | 15 poin dalam 40 dtk |
 
@@ -32,8 +32,8 @@ Pemain yang keluar tidak menghentikan room. Kalau host keluar, room ditutup dan 
 
 ### Penyesuaian terhadap GDD (perlu diketahui)
 
-- **Mangga atau Petasan, dua panen.** GDD meminta 12 piring, 1 mangga diganti petasan tiap sukses, selesai saat mangga habis, dan norma 14. Dengan 12 piring, skor maksimal hanya 11, jadi norma 14 mustahil. Solusinya: saat mangga habis di panen pertama, meja diisi ulang sekali ("PANEN KEDUA!", kecepatan tetap naik). Game selesai saat 3 strike atau saat panen kedua habis. Skor maksimal 22.
-- **Poin pribadi Mangga (online):** skor tim + mangga milikmu − 2 per petasan yang kamu ledakkan. Lulus/gagal tetap dihitung dari skor tim.
+- **Mangga atau Petasan, dua panen.** GDD meminta 12 piring, 1 mangga diganti petasan tiap sukses, selesai saat mangga habis, dan norma 14. Dengan 12 piring, skor maksimal hanya 11, jadi norma 14 mustahil. Solusinya: saat mangga habis di panen pertama, meja diisi ulang sekali ("PANEN KEDUA!", kecepatan tetap naik). Skor maksimal 22.
+- **Mangga atau Petasan (v1.2): jadi balapan 20 dtk individual**, bukan lagi giliran di satu papan bersama. GDD aslinya giliran + skor tim; diubah supaya kompetitif seperti Sinyal Lemot dan Pesanan Kilat — tiap pemain dapat papan sendiri (seed sama), main simultan, 3 strike cuma menghentikan pemain itu sendiri (bukan seluruh ronde). Poin = skor mangga pribadi. Seri dipecah: strike lebih sedikit menang, lalu yang selesai (panen kedua habis) lebih dulu menang.
 - **Sinyal Lemot (v1.1): lomba jumlah foto 10 dtk**, bukan lagi "sekali tembus 100%". Konstanta di `SINYAL` (`wr-core`): `PER_PRESS` 6,67 (≈15 tekan per foto), `IDLE` 0,25 dtk (jeda lebih lama = progres turun; mash terus tidak pernah turun), `DECAY` 30 %/dtk, `NORMA` 3. Uji simulasi: 6 tekan/dtk ≈ 4 foto, 10 tekan/dtk ≈ 6 foto.
 - **Poin Sinyal Lemot** (untuk Maraton dan peringkat): foto × 5 + progres foto berjalan/20. Lulus = foto ≥ norma. Bonus nyawa = foto ≥ 150% norma (mis. 5 dari 3).
 - **Rekor Sinyal** = foto terbanyak dalam 10 dtk (`wr_hs.sinyalFoto`). Rekor lama v1.0 (waktu tercepat, `wr_hs.sinyal`) dibuang otomatis karena satuannya beda.
@@ -50,8 +50,7 @@ Pemain yang keluar tidak menghentikan room. Kalau host keluar, room ditutup dan 
   - Abstraksi transport. Host: `onConnect / onMessage / onDisconnect / send / broadcast / drop / close`. Klien: `send / onMessage / onClose / close`.
   - Host juga pemain: klien lokalnya tersambung lewat `MemNet`, digabung dengan koneksi PeerJS lewat `muxHost`. **Latihan Solo memakai `RoomHost` + `RoomClient` yang sama** lewat `MemNet`, jadi logika solo dan online identik.
 - **Sinkronisasi:**
-  - Balapan (Sinyal, Pesanan): host mengirim `seed` + `startAt` (jam host). Klien mengoreksi selisih jam dengan ping. Semua main lokal dengan konten identik dari seed. Progres dikirim tiap 250 ms (Sinyal: `photos`, `prog`, `lastPhotoT`; host membatasi nilainya), host menyiarkan peringkat langsung tiap 300 ms dan hasil akhir.
-  - Mangga: host memegang papan, giliran, strike, dan skor. Pemain yang sedang giliran mengirim piring yang ia hentikan. Host memvalidasi (giliran & turnId cocok) lalu menyiarkan hasilnya.
+  - Balapan (Mangga, Sinyal, Pesanan): host mengirim `seed` + `startAt` (jam host). Klien mengoreksi selisih jam dengan ping. Semua main lokal dengan konten identik dari seed. Progres dikirim tiap 250 ms (Mangga: `score`, `strikes`, `finishT`; Sinyal: `photos`, `prog`, `lastPhotoT`; host membatasi semua nilainya), host menyiarkan peringkat langsung tiap 300 ms dan hasil akhir.
   - Heartbeat 2 dtk. Diam 9 dtk = dianggap putus (di dua sisi).
 
 ## Batasan yang diketahui
@@ -75,7 +74,14 @@ Pemain yang keluar tidak menghentikan room. Kalau host keluar, room ditutup dan 
 - Edge headless (Playwright): Solo Sinyal di HP 375 px (tap tombol + tap canvas) dan desktop 1280 px (A/S/D/Spasi, klik), rekor lama diabaikan, rekor baru "Rekor: N foto", hasil/norma tampil benar, Pesanan & Mangga masih jalan, tanpa error JS, tanpa overflow horizontal.
 - Belum diuji untuk v1.1: WebRTC nyata (PeerJS) dan HP sungguhan. Logika jaringan tidak berubah, hanya isi pesan progres.
 
+## Pengujian v1.2 (2026-11-03)
+
+- Node + jam virtual + `MemNet`: regresi inti Mangga (pemain agresif vs idle, pemain "sempurna" membersihkan 22 mangga dalam ~4 dtk dari 20 dtk, pemain acak kena 3 strike), tie-break (skor sama → strike lebih sedikit → selesai lebih awal), norma/bonus pakai skor bukan tim. Alur room penuh (host + 1 tamu) sampai hasil akhir: Mangga sekarang balapan simultan, bukan giliran — dua pemain menerima `start` yang sama dan main independen, hasil akhir cocok dengan simulasi lokal masing-masing.
+- Belum diuji untuk v1.2: WebRTC nyata (PeerJS), Edge/Playwright UI penuh, dan HP sungguhan untuk papan Mangga individual yang baru.
+
 ## Versi
+
+- **v1.2 (2026-11-03):** Mangga atau Petasan jadi balapan individual 20 dtk (bukan giliran di papan bersama) — setiap pemain dapat papan sendiri dari seed yang sama, main simultan seperti Sinyal Lemot & Pesanan Kilat. 3 strike cuma menghentikan pemain itu sendiri. Ranking berdasar skor mangga pribadi, seri dipecah oleh jumlah strike lalu kecepatan selesai. Netcode giliran (turn/press/turnResult) lama masih ada di kode tapi sudah tidak dipakai game manapun — kandidat dibersihkan di versi berikut.
 
 - **v1.1 (2026-11-03):** Sinyal Lemot jadi lomba jumlah foto 10 dtk (tiap 100% = 1 foto, bar reset, pemenang = foto terbanyak). Norma 3 foto (+10% per putaran Maraton), poin foto × 5, rekor = foto terbanyak, hitung mundur, penghitung "FOTO TERKIRIM", efek + suara tiap foto.
 - **v1.0 (2026-11-02):** MVP. Tiga game, Maraton, Latihan Solo, multiplayer room PeerJS (maks 6).

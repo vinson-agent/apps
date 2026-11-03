@@ -148,9 +148,9 @@ WR.cleanName = function (s) { const n = String(s == null ? '' : s).replace(/[\u0
 WR.err = function (code, msg) { const e = new Error(msg || code); e.code = code; return e; };
 
 WR.GAMES = {
-  mangga: { id: 'mangga', title: 'Mangga atau Petasan', kind: 'turn', tag: 'Petik mangganya, jangan petasannya!',
-    how: ['Penanda berputar keliling piring.', 'Tekan tombol APA SAJA untuk berhenti.', 'Mangga = +1 poin. Petasan = DUAR! (strike)', 'Bergiliran. 3 strike bersama = selesai.'],
-    sub: 'Bergiliran · tekan pas di mangga' },
+  mangga: { id: 'mangga', title: 'Mangga atau Petasan', kind: 'race', duration: 20, tag: 'Petik mangganya, jangan petasannya!',
+    how: ['Penanda berputar terus di piringmu sendiri.', 'Tekan tombol APA SAJA untuk memetik.', 'Mangga = +1 skor, makin cepat. Petasan = DUAR!', '3 strike = kamu berhenti. Skor terbanyak menang!'],
+    sub: 'Balapan 20 dtk · skor terbanyak' },
   sinyal: { id: 'sinyal', title: 'Sinyal Lemot', kind: 'race', duration: 10, tag: 'Kirim foto sebanyak-banyaknya!',
     how: ['Pencet A / S / D secepat-cepatnya!', 'Tiap 100% = 1 foto terkirim, bar ke 0.', 'Berhenti sebentar = progres turun.', 'Kirim sebanyak-banyaknya dalam 10 detik!'],
     sub: 'Balapan 10 dtk · kirim foto terbanyak' },
@@ -227,28 +227,40 @@ const PESANAN = {
   },
   report(s) { return { score: s.score, prog: s.served, finishT: null, over: s.over }; },
 };
-// ---------- 7.1 Mangga atau Petasan ----------
+// ---------- 7.1 Mangga atau Petasan: balapan 20 dtk, piring sendiri ----------
 const MANGGA = {
   N: 12, SPEED0: 3.0, UP: 0.25, HARVESTS: 2, STRIKES: 3,
   newBoard(r) { const b = new Array(12).fill('M'); b[Math.floor(r() * 12)] = 'P'; return b; },
-  create(seed, norma) { const r = WR.rng(seed >>> 0); return { r, board: MANGGA.newBoard(r), harvest: 1, speed: MANGGA.SPEED0, strikes: 0, team: 0, norma, per: {}, over: false, cleared: false }; },
-  resolve(s, pid, plate) {
-    const per = s.per[pid] || (s.per[pid] = { m: 0, p: 0 });
+  create(o) {
+    const r = WR.rng(o.seed >>> 0);
+    return { r, board: MANGGA.newBoard(r), harvest: 1, speed: MANGGA.SPEED0, strikes: 0, score: 0,
+      basePhase: r() * 12, baseT: 0, t: 0, limit: o.limit || WR.GAMES.mangga.duration, over: false, doneReason: null };
+  },
+  posAt(s, t) { const tt = Math.max(0, Math.min(t, s.limit)); return (((s.basePhase + s.speed * (tt - s.baseT)) % 12) + 12) % 12; },
+  update(s, t) {
+    if (s.over) return;
+    s.t = Math.max(s.t, t);
+    if (t >= s.limit) { s.t = s.limit; s.over = true; s.doneReason = 'time'; }
+  },
+  input(s, btn, t) {
+    if (s.over || t < 0) return null;
+    MANGGA.update(s, t); if (s.over) return null;
+    const phaseNow = MANGGA.posAt(s, t); const plate = Math.floor(phaseNow) % 12;
+    s.basePhase = phaseNow; s.baseT = t;
     let hit, refilled = false;
-    if (s.over) return { hit: 'none', refilled };
-    if (!(plate >= 0 && plate < 12)) { hit = 'timeout'; s.strikes++; per.p++; }
-    else if (s.board[plate] === 'M') {
-      hit = 'mango'; s.team++; per.m++; s.board[plate] = 'P'; s.speed = Math.round((s.speed + MANGGA.UP) * 1000) / 1000;
+    if (s.board[plate] === 'M') {
+      hit = 'mango'; s.score++; s.board[plate] = 'P'; s.speed = Math.round((s.speed + MANGGA.UP) * 1000) / 1000;
       if (!s.board.includes('M')) {
         if (s.harvest < MANGGA.HARVESTS) { s.harvest++; s.board = MANGGA.newBoard(s.r); refilled = true; }
-        else { s.over = true; s.cleared = true; }
+        else { s.over = true; s.doneReason = 'cleared'; }
       }
-    } else { hit = 'petasan'; s.strikes++; per.p++; }
-    if (s.strikes >= MANGGA.STRIKES) s.over = true;
-    return { hit, refilled };
+    } else {
+      hit = 'petasan'; s.strikes++;
+      if (s.strikes >= MANGGA.STRIKES) { s.over = true; s.doneReason = 'strikeout'; }
+    }
+    return { type: hit, plate, refilled, score: s.score, strikes: s.strikes, over: s.over };
   },
-  posAt(phase0, speed, dt) { return (((phase0 + speed * Math.max(0, dt)) % 12) + 12) % 12; },
-  points(s, pid, n) { const per = s.per[pid] || { m: 0, p: 0 }; return n <= 1 ? s.team : Math.max(0, s.team + per.m - 2 * per.p); },
+  report(s) { return { score: s.score, prog: s.score, strikes: s.strikes, finishT: s.over && s.doneReason !== 'time' ? s.t : null, over: s.over }; },
 };
 WR.mods = { sinyal: SINYAL, pesanan: PESANAN, mangga: MANGGA };
 
@@ -258,11 +270,16 @@ WR.racePoints = function (id, r, norma) {
     return { points: ph * 5 + Math.floor(pr / 20), pass: ph >= norma, photos: ph, lastPhotoT: r.lastPhotoT == null ? null : r.lastPhotoT,
       detail: ph + ' foto' + (pr >= 1 ? ' · ' + Math.floor(pr) + '%' : ''), sortKey: SINYAL.sortKey(r) };
   }
+  if (id === 'mangga') {
+    const score = Math.max(0, r.score || 0), strikes = Math.max(0, Math.min(9, r.strikes || 0));
+    const ft = r.finishT == null ? 9999 : Math.max(0, Math.min(999, Math.round(r.finishT * 10)));
+    return { points: score, pass: score >= norma, detail: score + ' mangga' + (strikes ? ' · ' + strikes + ' petasan' : ''),
+      sortKey: -(score * 1e6) + strikes * 1e4 + ft };
+  }
   return { points: r.score, pass: r.score >= norma, detail: (r.prog || 0) + ' pesanan', sortKey: -r.score };
 };
 WR.isBonus = function (id, row, norma) {
   if (id === 'sinyal') return (row.photos || 0) >= norma * 1.5 - 1e-9;
-  if (id === 'mangga') return row.team >= norma * 1.5;
   return row.points >= norma * 1.5;
 };
 
@@ -442,6 +459,9 @@ class RoomHost {
       const photos = Math.floor(num(m.photos, 0, SINYAL.MAX_PHOTOS));
       G.reports[p.id] = { score: photos, prog: Math.round(num(m.prog, 0, 99.9) * 10) / 10, photos,
         lastPhotoT: photos > 0 && m.lastPhotoT != null ? Math.round(num(m.lastPhotoT, 0, WR.GAMES.sinyal.duration) * 100) / 100 : null, finishT: null, over: !!m.over };
+    } else if (G.id === 'mangga') {
+      G.reports[p.id] = { score: Math.floor(num(m.score, 0, 99)), prog: Math.floor(num(m.prog, 0, 99)), strikes: Math.floor(num(m.strikes, 0, 3)),
+        finishT: m.finishT == null ? null : num(m.finishT, 0, WR.GAMES.mangga.duration), over: !!m.over };
     } else {
       G.reports[p.id] = { score: Math.floor(num(m.score, 0, 9999)), prog: Math.floor(num(m.prog, 0, 9999)), finishT: null, over: !!m.over };
     }
@@ -454,9 +474,10 @@ class RoomHost {
     const rows = G.parts.map(pid => {
       const nm = G.names[pid]; let r;
       if (G.kind === 'race') {
-        const rep = G.reports[pid] || { score: 0, prog: 0, photos: 0, lastPhotoT: null, finishT: null, over: false };
+        const rep = G.reports[pid] || { score: 0, prog: 0, photos: 0, lastPhotoT: null, strikes: 0, finishT: null, over: false };
         r = WR.racePoints(G.id, rep, G.norma); r.prog = rep.prog; r.score = rep.score; r.finishT = rep.finishT; r.over = rep.over;
         if (G.id === 'sinyal') { r.photos = rep.photos || 0; r.lastPhotoT = rep.lastPhotoT == null ? null : rep.lastPhotoT; }
+        if (G.id === 'mangga') { r.strikes = rep.strikes || 0; }
       } else {
         const per = G.m.per[pid] || { m: 0, p: 0 }; const pts = MANGGA.points(G.m, pid, G.parts.length);
         r = { points: pts, pass: G.m.team >= G.norma, team: G.m.team, m: per.m, p: per.p, detail: per.m + ' mangga · ' + per.p + ' petasan', sortKey: -pts };
@@ -1131,7 +1152,10 @@ function press(btn) {
     if (r.type === 'add') Snd.play('add', btn);
     else if (r.type === 'ok') { Snd.play('ok'); burst(200, 120, ['#ffd23f', '#5be36b', '#fff'], 18, 150); pop('+' + r.pts + ' MANTAP!', 200, 140, '#5be36b', 30); }
     else if (r.type === 'burn') { Snd.play('burn'); fx.shake = 8; burst(WR_COLX[btn], 330, ['#555', '#888', '#333', '#ff8a2b'], 26, 120); pop('HANGUS!', 200, 140, '#ff3b5c', 38); }
-  } else if (G.id === 'mangga') Snd.play('tap');
+  } else if (G.id === 'mangga') {
+    if (r.type === 'mango') { Snd.play('mango'); const p = platePos(r.plate); burst(p.x, p.y, ['#ffd23f', '#ff9a2b', '#5be36b', '#fff'], 20, 140); pop('+1', p.x, p.y - 20, '#5be36b', 28); if (r.refilled) { pop('PANEN KEDUA!', 200, 250, '#ffd23f', 34); Snd.play('ok'); } }
+    else if (r.type === 'petasan') { Snd.play('boom'); fx.shake = 14; fx.flash = 1; fx.flashC = '#ffef9a'; const p = platePos(r.plate); burst(p.x, p.y, ['#ff3b5c', '#ffd23f', '#ff8a2b', '#fff', '#555'], 40, 260); pop('DUAR!!', p.x, p.y - 10, '#ff3b5c', 36); }
+  }
 }
 const KEYS = { a: 0, s: 1, d: 2, ' ': 3, arrowleft: 0, arrowdown: 1, arrowright: 2, j: 0, k: 1, l: 2 };
 window.addEventListener('keydown', e => {
@@ -1205,22 +1229,23 @@ function padDemo(G, t) {
   }
   els.forEach((el, i) => el.classList.toggle('demo', on[i]));
 }
-function drawMangga(c, G, C) {
-  const per = G.per || {}; const T = C.turn;
-  const rows = G.parts.map(id => { const n = (C.st && C.st.players.find(p => p.id === id)) || null; const pp = per[id] || { m: 0, p: 0 }; return { id, name: n ? n.name : '(keluar)', color: n ? n.color : 0, m: pp.m, p: pp.p, bar: null }; });
-  const top = liveStrip(c, rows, r => '🥭' + r.m + ' 💥' + r.p, T && T.pid);
+function drawMangga(c, G, C, t) {
+  const s = G.s; const me = C.me;
+  const rows = (C.live || []).map(r => Object.assign({}, r, r.id === me ? { score: s.score, strikes: s.strikes } : {}));
+  rows.forEach(r => { r.bar = Math.max(0, Math.min(1, (r.score || 0) / Math.max(1, G.norma))); });
+  const top = liveStrip(c, rows, r => '🥭' + (r.score || 0) + ' 💥' + (r.strikes || 0), me);
   // HUD
   c.fillStyle = 'rgba(10,4,24,.72)'; rrect(c, 4, top + 4, VW - 8, 40, 10); c.fill();
-  for (let i = 0; i < 3; i++) { const x = 22 + i * 30, y = top + 22; c.fillStyle = i < (G.strikes || 0) ? '#ff3b5c' : 'rgba(255,255,255,.15)'; rrect(c, x - 12, y - 12, 24, 24, 5); c.fill(); comic(c, '✕', x, y + 1, 18, i < (G.strikes || 0) ? '#fff' : 'rgba(255,255,255,.3)'); }
-  txt(c, 'SKOR TIM', 330, top + 12, 11, '#c9b8f0', 'center', 900); comic(c, (G.team || 0) + ' / ' + G.norma, 330, top + 32, 22, (G.team || 0) >= G.norma ? '#5be36b' : '#ffd23f');
-  txt(c, 'PANEN ' + (G.harvest || 1) + '/2', 200, top + 14, 12, '#ff5fc8', 'center', 900);
-  const board = G.board || 'MMMMMMMMMMMM';
-  const pos = C.spinnerPos(); const cur = pos == null ? -1 : Math.floor(pos) % 12;
+  for (let i = 0; i < 3; i++) { const x = 22 + i * 30, y = top + 22; c.fillStyle = i < (s.strikes || 0) ? '#ff3b5c' : 'rgba(255,255,255,.15)'; rrect(c, x - 12, y - 12, 24, 24, 5); c.fill(); comic(c, '✕', x, y + 1, 18, i < (s.strikes || 0) ? '#fff' : 'rgba(255,255,255,.3)'); }
+  txt(c, 'SKOR', 330, top + 12, 11, '#c9b8f0', 'center', 900); comic(c, (s.score || 0) + ' / ' + G.norma, 330, top + 32, 22, (s.score || 0) >= G.norma ? '#5be36b' : '#ffd23f');
+  txt(c, 'PANEN ' + (s.harvest || 1) + '/2', 200, top + 14, 12, '#ff5fc8', 'center', 900);
+  const board = s.board;
+  const pos = s.over ? null : MANGGA.posAt(s, t); const cur = pos == null ? -1 : Math.floor(pos) % 12;
   // meja bundar
   c.fillStyle = '#7a3d1a'; c.beginPath(); c.arc(200, 258, 166, 0, Math.PI * 2); c.fill(); c.fillStyle = '#9c5426'; c.beginPath(); c.arc(200, 258, 156, 0, Math.PI * 2); c.fill();
   for (let i = 0; i < 12; i++) {
     const p = platePos(i); const hl = i === cur;
-    if (hl) { c.fillStyle = T && T.result ? (T.result.hit === 'mango' ? '#5be36b' : '#ff3b5c') : '#ffd23f'; c.beginPath(); c.arc(p.x, p.y, 33, 0, Math.PI * 2); c.fill(); }
+    if (hl) { c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(p.x, p.y, 33, 0, Math.PI * 2); c.fill(); }
     c.fillStyle = '#fff'; c.beginPath(); c.arc(p.x, p.y, 27, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#3aa0ff'; c.lineWidth = 3; c.beginPath(); c.arc(p.x, p.y, 23, 0, Math.PI * 2); c.stroke();
     if (board[i] === 'M') spr(c, 'mango', p.x, p.y, 3.2);
     else { spr(c, 'petasan', p.x, p.y + 2, 3); if (Math.sin(clock * 25 + i) > 0) { c.fillStyle = '#ffd23f'; c.fillRect(p.x - 2, p.y - 20, 5, 5); c.fillStyle = '#fff'; c.fillRect(p.x - 1, p.y - 19, 2, 2); } }
@@ -1231,14 +1256,9 @@ function drawMangga(c, G, C) {
     c.fillStyle = '#ffd23f'; c.strokeStyle = '#1a0630'; c.lineWidth = 3; c.beginPath(); c.moveTo(50, -9); c.lineTo(96, 0); c.lineTo(50, 9); c.closePath(); c.fill(); c.stroke(); c.restore();
   }
   // tengah
-  const tp = T ? rows.find(r => r.id === T.pid) : null; const mine = T && T.pid === C.me;
-  c.fillStyle = tp ? WR.COLORS[tp.color] : '#2a1252'; c.beginPath(); c.arc(200, 258, 52, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#1a0630'; c.lineWidth = 4; c.stroke();
-  if (T && !T.result) {
-    if (mine) { const k = 1 + 0.08 * Math.sin(clock * 12); comic(c, T.pressed ? '...' : 'TEKAN!', 200, 250, 22 * k, '#fff'); txt(c, 'giliranmu', 200, 278, 12, '#1a0630', 'center', 900); }
-    else { txt(c, 'Giliran', 200, 243, 12, '#1a0630', 'center', 900); comic(c, tp ? tp.name.slice(0, 8) : '?', 200, 266, 17, '#fff'); }
-    const left = Math.max(0, (T.deadline - C.hostNow()) / 1000); if (left < 4 && !T.pressed) txt(c, left.toFixed(1), 200, 330, 16, '#ff3b5c', 'center', 900);
-  }
-  $('#pad').classList.toggle('dim', !(mine && T && !T.pressed));
+  c.fillStyle = '#2a1252'; c.beginPath(); c.arc(200, 258, 52, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#1a0630'; c.lineWidth = 4; c.stroke();
+  if (!s.over) { const k = 1 + 0.08 * Math.sin(clock * 12); comic(c, 'PETIK!', 200, 258, 22 * k, '#fff'); }
+  else { comic(c, s.doneReason === 'cleared' ? 'HABIS!' : s.doneReason === 'strikeout' ? 'KALAH!' : 'SELESAI!', 200, 258, 24, s.doneReason === 'strikeout' ? '#ff3b5c' : '#5be36b'); }
 }
 const PHOTO_COL = ['#ffb36b', '#6b3a1a', '#3a1a6b'];
 function drawPhoto(c, i, x, y, w, h) {
@@ -1338,10 +1358,10 @@ function drawGame(c) {
   const phase = t < -3 ? 'intro' : t < -1.5 ? 'norma' : t < -0.35 ? 'ready' : 'play';
   if (phase !== gv.lastPhase) { if (phase === 'norma') Snd.play('ready'); if (phase === 'ready') Snd.play('ready'); if (phase === 'play' && t < 1) Snd.play('go'); gv.lastPhase = phase; }
   padDemo(G, t);
-  if (G.id !== 'mangga') $('#pad').classList.toggle('dim', phase !== 'play' || (G.s && G.s.over));
-  if (phase === 'intro') { drawIntro(c, G, t); if (G.id === 'mangga') $('#pad').classList.add('dim'); return; }
-  if (G.id === 'mangga') drawMangga(c, G, C); else if (G.id === 'sinyal') drawSinyal(c, G, C, t); else drawPesanan(c, G, C, t);
-  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, G.id === 'mangga' && G.parts.length > 1 ? 'NORMA TIM' : 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, G.id === 'sinyal' ? 23 : 46, '#ffd23f', -0.05); }
+  $('#pad').classList.toggle('dim', phase !== 'play' || (G.s && G.s.over));
+  if (phase === 'intro') { drawIntro(c, G, t); return; }
+  if (G.id === 'mangga') drawMangga(c, G, C, t); else if (G.id === 'sinyal') drawSinyal(c, G, C, t); else drawPesanan(c, G, C, t);
+  if (phase === 'norma') { c.fillStyle = 'rgba(10,4,24,.75)'; c.fillRect(0, 120, VW, 170); txt(c, 'NORMA', 200, 160, 16, '#c9b8f0', 'center', 900); comic(c, WR.normaText(G.id, G.norma), 200, 210, G.id === 'sinyal' ? 23 : 40, '#ffd23f', -0.05); }
   else if (phase === 'ready') { const k = 1 + 0.1 * Math.sin(clock * 20); comic(c, 'READY...', 200, 210, 52 * k, '#ff5fc8', -0.08); }
   else if (t < 0.6) { const k = Math.max(0, t + 0.35); c.globalAlpha = Math.max(0, 1 - k); comic(c, 'GO!!', 200, 210, 70 + k * 80, '#5be36b', -0.1); c.globalAlpha = 1; }
 }
